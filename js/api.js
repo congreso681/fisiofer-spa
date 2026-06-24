@@ -71,7 +71,23 @@ async function fetchDisponibilidad(fecha, servicioId, profesionalId) {
     const response = await fetch(`${API_BASE_URL}/disponibilidad?${queryParams}`);
     if (!response.ok) throw new Error('Error al consultar disponibilidad');
     const resData = await response.json();
-    return resData.data.slots_disponibles || [];
+    
+    // 📌 PROCESAR LA RESPUESTA CORRECTAMENTE
+    if (resData.success && resData.data && resData.data.profesionales) {
+      // Buscar el profesional seleccionado
+      const profesionalData = resData.data.profesionales.find(
+        p => p.profesional_id === parseInt(profesionalId)
+      );
+      // Si se encuentra, devolver sus slots
+      if (profesionalData && profesionalData.slots_disponibles) {
+        return profesionalData.slots_disponibles;
+      }
+      // Si no hay coincidencia, devolver los slots del primer profesional
+      if (resData.data.profesionales.length > 0) {
+        return resData.data.profesionales[0].slots_disponibles || [];
+      }
+    }
+    return [];
   } catch (error) {
     console.warn('⚠️ Usando simulación local de turnos disponibles.', error.message);
     
