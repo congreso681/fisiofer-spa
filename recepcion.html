@@ -630,18 +630,17 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- AGENDAMIENTO MÚLTIPLE (10 SESIONES) -->
+    <!-- AGENDAMIENTO MÚLTIPLE -->
     <!-- ============================================================ -->
     <div class="form-section" style="border: 2px solid var(--primary); background: #EBF4FF;">
       <h3 style="color: var(--primary-dark);">
-        <i class="fas fa-calendar-plus"></i> Agendamiento Múltiple (10 Sesiones)
+        <i class="fas fa-calendar-plus"></i> Agendamiento Múltiple
       </h3>
       <p style="font-size:0.85rem;color:var(--text-body);margin-bottom:16px;">
         Programa automáticamente hasta 30 sesiones para un paciente en los días seleccionados.
       </p>
 
       <div class="form-grid">
-        <!-- Paciente -->
         <div class="form-group">
           <label>Paciente *</label>
           <select class="form-control" id="multiPaciente">
@@ -653,7 +652,6 @@
           </div>
         </div>
 
-        <!-- Servicio -->
         <div class="form-group">
           <label>Servicio *</label>
           <select class="form-control" id="multiServicio">
@@ -661,7 +659,6 @@
           </select>
         </div>
 
-        <!-- Profesional -->
         <div class="form-group">
           <label>Profesional *</label>
           <select class="form-control" id="multiProfesional">
@@ -669,19 +666,16 @@
           </select>
         </div>
 
-        <!-- Número de sesiones -->
         <div class="form-group">
           <label>Número de sesiones</label>
           <input type="number" class="form-control" id="multiSesiones" value="10" min="1" max="30">
         </div>
 
-        <!-- Hora de inicio -->
         <div class="form-group">
           <label>Hora de inicio</label>
           <input type="time" class="form-control" id="multiHoraInicio" value="09:00">
         </div>
 
-        <!-- Duración por sesión -->
         <div class="form-group">
           <label>Duración (minutos)</label>
           <select class="form-control" id="multiDuracion">
@@ -692,10 +686,9 @@
         </div>
       </div>
 
-      <!-- Días de la semana -->
       <div style="margin: 16px 0;">
         <label style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-body);display:block;margin-bottom:8px;">
-          📅 Días de la semana para las sesiones
+          📅 Días de la semana
         </label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="day-selector" data-day="1" onclick="toggleDia(this)">Lun</button>
@@ -705,12 +698,8 @@
           <button class="day-selector selected" data-day="5" onclick="toggleDia(this)">Vie</button>
           <button class="day-selector" data-day="6" onclick="toggleDia(this)">Sáb</button>
         </div>
-        <div style="font-size:0.7rem;color:var(--text-body);margin-top:6px;">
-          ⚡ Los días seleccionados se marcarán en azul. Las sesiones se agendarán en los días elegidos.
-        </div>
       </div>
 
-      <!-- Fecha de inicio -->
       <div class="form-grid">
         <div class="form-group">
           <label>Fecha de inicio *</label>
@@ -722,12 +711,10 @@
         </div>
       </div>
 
-      <!-- Resumen -->
       <div id="multiResumen" style="background:#f8fafc;padding:12px 16px;border-radius:var(--radius-sutil);margin:12px 0;font-size:0.85rem;border:1px solid var(--border-color);">
         <strong>Resumen:</strong> <span id="resumenTexto">Selecciona los días y fecha de inicio para ver el resumen.</span>
       </div>
 
-      <!-- Botón de acción -->
       <div class="form-row">
         <button class="btn-panel-secondary" onclick="limpiarMultiAgendamiento()">Limpiar</button>
         <button class="btn-panel" onclick="generarSesionesMultiples()" style="background:var(--success);">
@@ -739,7 +726,7 @@
     </div>
 
     <!-- ADMISIÓN -->
-    <div class="form-section">
+    <div class="form-section" id="formularioAdmision">
       <h3><i class="fas fa-user-plus"></i> Registro de nuevo paciente</h3>
       <div class="form-grid">
         <div class="form-group">
@@ -879,7 +866,7 @@
   }
 
   // ===================================================================
-  // SELECTOR DE FECHA
+  // FUNCIONES DE FECHA
   // ===================================================================
   function formatearFecha(fecha) {
     return fecha.toISOString().split('T')[0];
@@ -891,20 +878,19 @@
     });
   }
 
-function actualizarFechaCitas() {
-  const input = document.getElementById('fechaCitas');
-  const label = document.getElementById('fechaCitasLabel');
-  
-  if (input) {
-    input.value = formatearFecha(fechaCitasActual);
+  // ===================================================================
+  // SELECTOR DE FECHA
+  // ===================================================================
+  function actualizarFechaCitas() {
+    const input = document.getElementById('fechaCitas');
+    const label = document.getElementById('fechaCitasLabel');
+    
+    const fechaStr = formatearFecha(fechaCitasActual);
+    if (input) input.value = fechaStr;
+    if (label) label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
+    
+    cargarCitasPorFecha(fechaStr);
   }
-  if (label) {
-    label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
-  }
-  
-  // Recargar citas para la fecha seleccionada
-  cargarCitasPorFecha(formatearFecha(fechaCitasActual));
-}
 
   function cambiarFechaCitas(dias) {
     fechaCitasActual.setDate(fechaCitasActual.getDate() + dias);
@@ -917,51 +903,82 @@ function actualizarFechaCitas() {
   }
 
   // ===================================================================
-  // CARGAR TURNOS LOCALES
+  // Sincronizar turnos locales con el backend
   // ===================================================================
-  function cargarTurnosLocales() {
-    try {
-      const turnos = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
-      if (turnos.length > 0) {
-        console.log('📋 Turnos locales encontrados:', turnos.length);
-        return turnos;
+  async function sincronizarTurnosLocales() {
+    console.log('🔄 Sincronizando turnos locales con el backend...');
+    
+    const turnosLocales = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
+    const turnosSync = JSON.parse(localStorage.getItem('turnos_sync') || '[]');
+    
+    const turnosPendientes = turnosLocales.filter(t => !turnosSync.includes(t.id));
+    
+    if (turnosPendientes.length === 0) {
+      console.log('✅ Todos los turnos locales ya están sincronizados.');
+      return;
+    }
+    
+    console.log(`📋 ${turnosPendientes.length} turnos pendientes de sincronizar.`);
+    
+    for (const turno of turnosPendientes) {
+      try {
+        const payload = {
+          paciente_nombre: turno.paciente_nombre,
+          paciente_telefono: turno.paciente_telefono || 'N/A',
+          paciente_email: turno.paciente_email || null,
+          servicio_id: turno.servicio_id || 1,
+          profesional_id: turno.profesional_id || 1,
+          fecha: turno.fecha,
+          hora: turno.hora || '09:00'
+        };
+        
+        const response = await fetch(`${API_URL}/turnos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          turnosSync.push(turno.id);
+          localStorage.setItem('turnos_sync', JSON.stringify(turnosSync));
+          console.log(`✅ Turno #${turno.id} sincronizado. Nuevo ID: ${data.data.id}`);
+        } else {
+          console.warn(`⚠️ Error al sincronizar turno #${turno.id}:`, data.error);
+        }
+      } catch (error) {
+        console.error(`❌ Error al sincronizar turno #${turno.id}:`, error);
       }
-      return [];
-    } catch (error) {
-      console.warn('Error cargando turnos locales:', error);
-      return [];
     }
   }
 
-// ===================================================================
-// CARGAR CITAS POR FECHA
-// ===================================================================
-async function cargarCitasPorFecha(fecha) {
-  console.log('🔄 Cargando citas para:', fecha);
-  
-  try {
-    // Primero sincronizar turnos locales
-    await sincronizarTurnosLocales();
+  // ===================================================================
+  // CARGAR CITAS POR FECHA
+  // ===================================================================
+  async function cargarCitasPorFecha(fecha) {
+    console.log('🔄 Cargando citas para:', fecha);
     
-    // Obtener citas del backend
-    const response = await fetch(`${API_URL}/turnos`);
-    if (!response.ok) throw new Error('Error al cargar citas');
-    const data = await response.json();
+    try {
+      await sincronizarTurnosLocales();
+      
+      const response = await fetch(`${API_URL}/turnos`);
+      if (!response.ok) throw new Error('Error al cargar citas');
+      const data = await response.json();
 
-    let turnos = data.data || [];
-    console.log(`📋 Total de citas en backend: ${turnos.length}`);
+      let turnos = data.data || [];
+      console.log(`📋 Total de citas en backend: ${turnos.length}`);
 
-    // Filtrar por fecha
-    const citasFecha = turnos.filter(t => t.fecha === fecha);
-    renderizarCitas(citasFecha, fecha);
-    actualizarKPIs(turnos);
-  } catch (error) {
-    console.error('❌ Error al cargar citas:', error);
-    document.getElementById('citasBody').innerHTML = `
-      <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
-    `;
+      const citasFecha = turnos.filter(t => t.fecha === fecha);
+      renderizarCitas(citasFecha, fecha);
+      actualizarKPIs(turnos);
+    } catch (error) {
+      console.error('❌ Error al cargar citas:', error);
+      document.getElementById('citasBody').innerHTML = `
+        <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
+      `;
+    }
   }
-}
 
   // ===================================================================
   // RENDERIZAR CITAS
@@ -972,13 +989,12 @@ async function cargarCitasPorFecha(fecha) {
     if (!citas || citas.length === 0) {
       tbody.innerHTML = `
         <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">
-          No hay citas para el ${formatearFechaLegible(new Date(fecha))}.
+          No hay citas para el ${formatearFechaLegible(new Date(fecha + 'T00:00:00'))}.
         </td></tr>
       `;
       return;
     }
 
-    // Ordenar por hora
     citas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
 
     tbody.innerHTML = citas.map(t => {
@@ -1034,22 +1050,19 @@ async function cargarCitasPorFecha(fecha) {
   }
 
   // ===================================================================
-  // NUEVA CITA - ABRIR FORMULARIO
+  // ABRIR NUEVA CITA
   // ===================================================================
   function abrirNuevaCita() {
-    // Cambiar al panel de citas si no está activo
     const panelCitas = document.getElementById('panel-citas');
     if (!panelCitas.classList.contains('active')) {
       cambiarPanel('citas', document.querySelector('[data-panel="citas"] a'));
     }
     
-    // Scroll al formulario de admisión
-    const formSection = document.querySelector('.form-section:last-of-type');
+    const formSection = document.getElementById('formularioAdmision');
     if (formSection) {
       formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     
-    // Enfocar el primer campo
     setTimeout(() => {
       const input = document.getElementById('admNombre');
       if (input) input.focus();
@@ -1058,198 +1071,126 @@ async function cargarCitasPorFecha(fecha) {
     toast('📝 Completa el formulario para registrar una nueva cita');
   }
 
-// ===================================================================
-// SINCRONIZAR TURNOS LOCALES CON EL BACKEND
-// ===================================================================
-async function sincronizarTurnosLocales() {
-  console.log('🔄 Sincronizando turnos locales con el backend...');
-  
-  const turnosLocales = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
-  const turnosSync = JSON.parse(localStorage.getItem('turnos_sync') || '[]');
-  
-  // Filtrar turnos que ya fueron sincronizados
-  const turnosPendientes = turnosLocales.filter(t => !turnosSync.includes(t.id));
-  
-  if (turnosPendientes.length === 0) {
-    console.log('✅ Todos los turnos locales ya están sincronizados.');
-    return;
-  }
-  
-  console.log(`📋 ${turnosPendientes.length} turnos pendientes de sincronizar.`);
-  
-  for (const turno of turnosPendientes) {
+  // ===================================================================
+  // CONFIRMAR CITA
+  // ===================================================================
+  async function confirmarCita(id) {
+    console.log('🔄 Confirmando cita ID:', id);
+    
+    if (!id) {
+      toast('❌ ID de cita no válido.');
+      return;
+    }
+
     try {
-      const payload = {
-        paciente_nombre: turno.paciente_nombre,
-        paciente_telefono: turno.paciente_telefono || 'N/A',
-        paciente_email: turno.paciente_email || null,
-        servicio_id: turno.servicio_id || 1,
-        profesional_id: turno.profesional_id || 1,
-        fecha: turno.fecha,
-        hora: turno.hora || '09:00'
-      };
-      
-      console.log(`📤 Creando turno en backend para ${turno.paciente_nombre}...`);
-      
-      const response = await fetch(`${API_URL}/turnos`, {
-        method: 'POST',
+      const response = await fetch(`${API_URL}/turnos/${id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ estado: 'confirmado' })
       });
-      
+
       const data = await response.json();
-      
+      console.log('📥 Respuesta confirmar:', data);
+
       if (response.ok && data.success) {
-        // Marcar como sincronizado
-        turnosSync.push(turno.id);
-        localStorage.setItem('turnos_sync', JSON.stringify(turnosSync));
-        console.log(`✅ Turno #${turno.id} sincronizado correctamente. Nuevo ID: ${data.data.id}`);
+        toast('✅ Cita confirmada. Camilla asignada.');
+        actualizarFechaCitas();
       } else {
-        console.warn(`⚠️ Error al sincronizar turno #${turno.id}:`, data.error);
+        console.error('❌ Error del backend:', data);
+        toast('❌ Error al confirmar: ' + (data.error || 'Error desconocido'));
       }
     } catch (error) {
-      console.error(`❌ Error al sincronizar turno #${turno.id}:`, error);
+      console.error('❌ Error de conexión:', error);
+      toast('❌ Error de conexión. Verifica tu internet.');
     }
   }
-  
-  // Recargar citas después de sincronizar
-  actualizarFechaCitas();
-}
-
 
   // ===================================================================
-  // CITAS - ACCIONES
+  // CANCELAR CITA
   // ===================================================================
-// ===================================================================
-// CONFIRMAR CITA
-// ===================================================================
-async function confirmarCita(id) {
-  console.log('🔄 Confirmando cita ID:', id);
-  
-  if (!id) {
-    toast('❌ ID de cita no válido.');
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/turnos/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ estado: 'confirmado' })
-    });
-
-    console.log('📥 Status:', response.status);
+  async function cancelarCita(id) {
+    if (!confirm('¿Cancelar esta cita?')) return;
     
-    const data = await response.json();
-    console.log('📥 Respuesta:', data);
+    console.log('🔄 Cancelando cita ID:', id);
+    
+    try {
+      const response = await fetch(`${API_URL}/turnos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'cancelado' })
+      });
 
-    if (response.ok && data.success) {
-      toast('✅ Cita confirmada. Camilla asignada.');
-      actualizarFechaCitas(); // Recargar citas
-    } else {
-      console.error('❌ Error del backend:', data);
-      toast('❌ Error al confirmar: ' + (data.error || 'Error desconocido'));
-    }
-  } catch (error) {
-    console.error('❌ Error de conexión:', error);
-    toast('❌ Error de conexión. Verifica tu internet.');
-  }
-}
+      const data = await response.json();
+      console.log('📥 Respuesta cancelar:', data);
 
-// ===================================================================
-// CANCELAR CITA
-// ===================================================================
-async function cancelarCita(id) {
-  if (!confirm('¿Cancelar esta cita?')) return;
-  
-  console.log('🔄 Cancelando cita ID:', id);
-  
-  try {
-    const response = await fetch(`${API_URL}/turnos/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ estado: 'cancelado' })
-    });
-
-    const data = await response.json();
-    console.log('📥 Respuesta cancelar:', data);
-
-    if (response.ok && data.success) {
-      toast('❌ Cita cancelada.');
-      actualizarFechaCitas();
-    } else {
-      toast('❌ Error al cancelar: ' + (data.error || 'Error desconocido'));
-    }
-  } catch (error) {
-    console.error('❌ Error de conexión:', error);
-    toast('❌ Error de conexión.');
-  }
-}
-
-// ===================================================================
-// FINALIZAR CITA
-// ===================================================================
-async function finalizarCitaBackend(id) {
-  console.log('🔄 Finalizando cita ID:', id);
-  
-  try {
-    const response = await fetch(`${API_URL}/turnos/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ estado: 'completado' })
-    });
-
-    const data = await response.json();
-    console.log('📥 Respuesta finalizar:', data);
-
-    if (response.ok && data.success) {
-      toast('✅ Cita finalizada. Camilla liberada.');
-      actualizarFechaCitas();
-      
-      // Registrar pago automáticamente
-      try {
-        await registrarPagoBackend(id);
-      } catch (pagoError) {
-        console.warn('⚠️ Error al registrar pago:', pagoError);
+      if (response.ok && data.success) {
+        toast('❌ Cita cancelada.');
+        actualizarFechaCitas();
+      } else {
+        toast('❌ Error al cancelar: ' + (data.error || 'Error desconocido'));
       }
-    } else {
-      toast('❌ Error al finalizar: ' + (data.error || 'Error desconocido'));
+    } catch (error) {
+      console.error('❌ Error de conexión:', error);
+      toast('❌ Error de conexión.');
     }
-  } catch (error) {
-    console.error('❌ Error de conexión:', error);
-    toast('❌ Error de conexión.');
   }
-}
 
-// ===================================================================
-// REGISTRAR PAGO (POST)
-// ===================================================================
-async function registrarPagoBackend(turnoId) {
-  try {
-    const response = await fetch(`${API_URL}/turnos/${turnoId}/pago`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ monto: 50, metodo: 'efectivo' })
-    });
-    const data = await response.json();
-    console.log('📥 Respuesta pago:', data);
-    if (data.success) {
-      toast('💰 Pago registrado en caja.');
-      actualizarCaja(50);
+  // ===================================================================
+  // FINALIZAR CITA
+  // ===================================================================
+  async function finalizarCitaBackend(id) {
+    console.log('🔄 Finalizando cita ID:', id);
+    
+    try {
+      const response = await fetch(`${API_URL}/turnos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'completado' })
+      });
+
+      const data = await response.json();
+      console.log('📥 Respuesta finalizar:', data);
+
+      if (response.ok && data.success) {
+        toast('✅ Cita finalizada. Camilla liberada.');
+        actualizarFechaCitas();
+        try {
+          await registrarPagoBackend(id);
+        } catch (pagoError) {
+          console.warn('⚠️ Error al registrar pago:', pagoError);
+        }
+      } else {
+        toast('❌ Error al finalizar: ' + (data.error || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('❌ Error de conexión:', error);
+      toast('❌ Error de conexión.');
     }
-  } catch (error) {
-    console.warn('⚠️ No se pudo registrar el pago:', error);
   }
-}
 
+  // ===================================================================
+  // REGISTRAR PAGO
+  // ===================================================================
+  async function registrarPagoBackend(turnoId) {
+    try {
+      const response = await fetch(`${API_URL}/turnos/${turnoId}/pago`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monto: 50, metodo: 'efectivo' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast('💰 Pago registrado en caja.');
+        actualizarCaja(50);
+      }
+    } catch (error) {
+      console.warn('⚠️ No se pudo registrar el pago:', error);
+    }
+  }
+
+  // ===================================================================
+  // ACTUALIZAR CAJA
+  // ===================================================================
   function actualizarCaja(monto) {
     totalCaja += monto;
     document.getElementById('kpiCaja').innerHTML = totalCaja + ' <span style="font-size:1rem;">Bs.</span>';
@@ -1587,7 +1528,7 @@ async function registrarPagoBackend(turnoId) {
       resultado.style.display = 'block';
       resultado.style.background = '#FEF2F2';
       resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ No se pudieron generar fechas. Verifica los días seleccionados.';
+      resultado.innerHTML = '⚠️ No se pudieron generar fechas.';
       return;
     }
 
@@ -1633,16 +1574,16 @@ async function registrarPagoBackend(turnoId) {
       resultado.style.background = '#ECFDF5';
       resultado.style.color = '#065F46';
       resultado.innerHTML = `
-        ✅ <strong>${creados} sesiones generadas exitosamente</strong> para ${nombrePaciente}.<br>
-        ${errores > 0 ? `⚠️ ${errores} sesiones no pudieron ser creadas.` : ''}
+        ✅ <strong>${creados} sesiones generadas</strong> para ${nombrePaciente}.<br>
+        ${errores > 0 ? `⚠️ ${errores} sesiones fallaron.` : ''}
         📅 Primera: ${fechas[0]} · Última: ${fechas[fechas.length-1]}
       `;
-      toast(`✅ ${creados} sesiones agendadas para ${nombrePaciente}`);
+      toast(`✅ ${creados} sesiones agendadas`);
       actualizarFechaCitas();
     } else {
       resultado.style.background = '#FEF2F2';
       resultado.style.color = '#991B1B';
-      resultado.innerHTML = '❌ No se pudo generar ninguna sesión. Verifica los datos e intenta nuevamente.';
+      resultado.innerHTML = '❌ No se pudo generar ninguna sesión.';
     }
   }
 
@@ -1656,7 +1597,7 @@ async function registrarPagoBackend(turnoId) {
     const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
     const existe = pacientes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
     if (existe) {
-      toast('⚠️ El paciente ya existe. Selecciónalo de la lista.');
+      toast('⚠️ El paciente ya existe.');
       return;
     }
 
