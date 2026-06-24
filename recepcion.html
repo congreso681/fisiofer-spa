@@ -1629,6 +1629,35 @@ async function cargarDatosMulti() {
     toast('🔄 Formulario limpiado.');
   }
 
+  // Cargar profesionales - versión alternativa
+async function cargarProfesionalesMulti() {
+  try {
+    console.log('🔄 Cargando profesionales (alternativo)...');
+    const response = await fetch(`${API_URL}/profesionales`);
+    const data = await response.json();
+    console.log('📥 Respuesta profesionales:', data);
+    
+    const selectProfesional = document.getElementById('multiProfesional');
+    selectProfesional.innerHTML = '<option value="">Seleccione un profesional</option>';
+    
+    if (data.success && data.data) {
+      data.data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        // Mostrar nombre
+        const nombreDisplay = p.titulo ? `${p.titulo} ${p.nombre}` : p.nombre;
+        opt.textContent = nombreDisplay;
+        selectProfesional.appendChild(opt);
+      });
+      console.log(`✅ ${data.data.length} profesionales cargados`);
+    } else {
+      console.warn('⚠️ No se encontraron profesionales en la respuesta');
+    }
+  } catch (error) {
+    console.error('❌ Error cargando profesionales:', error);
+  }
+}
+
   // ===================================================================
   // INICIALIZAR
   // ===================================================================
