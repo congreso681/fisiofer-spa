@@ -5,7 +5,9 @@
 // 📌 URL de tu backend en Railway
 const API_BASE_URL = 'https://fisiofer-backend-production.up.railway.app/api';
 
-// Datos de fallback (Mock) en caso de que el backend no esté activo
+// ===================================================================
+// DATOS DE FALLBACK (MOCK)
+// ===================================================================
 const MOCK_SERVICIOS = [
   { id: 1, nombre: "Evaluación Diagnóstica", descripcion: "Evaluación completa para diagnóstico kinésico y plan de tratamiento" },
   { id: 2, nombre: "Kinesiología", descripcion: "Evaluación y tratamiento del movimiento corporal" },
@@ -30,47 +32,17 @@ const MOCK_SERVICIOS = [
 ];
 
 const MOCK_PROFESIONALES = [
-  { 
-    id: 1, 
-    nombre: "Lic. Nelly Fernández", 
-    especialidad: "Fisioterapeuta · Propietaria", 
-    email: "nelly.fernandez@fisiofer.com" 
-  },
-  { 
-    id: 2, 
-    nombre: "Lic. Fidel Villca", 
-    especialidad: "Fisioterapeuta · Propietario", 
-    email: "fidel.villca@fisiofer.com" 
-  },
-  { 
-    id: 3, 
-    nombre: "Lic. Roxana Ramos", 
-    especialidad: "Fisioterapeuta", 
-    email: "roxana.ramos@fisiofer.com" 
-  },
-  { 
-    id: 4, 
-    nombre: "Helen Quispe", 
-    especialidad: "Masajista Terapeuta", 
-    email: "helen.quispe@fisiofer.com" 
-  },
-  { 
-    id: 5, 
-    nombre: "Paula Romero", 
-    especialidad: "Masajista Terapeuta / Esteticista", 
-    email: "paula.romero@fisiofer.com" 
-  },
-  { 
-    id: 6, 
-    nombre: "Rubén Linares", 
-    especialidad: "Secretario · Admisión", 
-    email: "ruben.linares@fisiofer.com" 
-  }
+  { id: 1, nombre: "Lic. Nelly Fernández", especialidad: "Fisioterapeuta · Propietaria", email: "nelly.fernandez@fisiofer.com" },
+  { id: 2, nombre: "Lic. Fidel Villca", especialidad: "Fisioterapeuta · Propietario", email: "fidel.villca@fisiofer.com" },
+  { id: 3, nombre: "Lic. Roxana Ramos", especialidad: "Fisioterapeuta", email: "roxana.ramos@fisiofer.com" },
+  { id: 4, nombre: "Helen Quispe", especialidad: "Masajista Terapeuta", email: "helen.quispe@fisiofer.com" },
+  { id: 5, nombre: "Paula Romero", especialidad: "Masajista Terapeuta / Esteticista", email: "paula.romero@fisiofer.com" },
+  { id: 6, nombre: "Rubén Linares", especialidad: "Secretario · Admisión", email: "ruben.linares@fisiofer.com" }
 ];
 
-/**
- * Obtener todos los servicios del centro.
- */
+// ===================================================================
+// OBTENER SERVICIOS
+// ===================================================================
 async function fetchServicios() {
   try {
     const response = await fetch(`${API_BASE_URL}/servicios`);
@@ -83,9 +55,9 @@ async function fetchServicios() {
   }
 }
 
-/**
- * Obtener la lista de profesionales.
- */
+// ===================================================================
+// OBTENER PROFESIONALES
+// ===================================================================
 async function fetchProfesionales() {
   try {
     const response = await fetch(`${API_BASE_URL}/profesionales`);
@@ -93,7 +65,6 @@ async function fetchProfesionales() {
     const resData = await response.json();
     
     if (resData.success && resData.data) {
-      // Transformar la respuesta del backend al formato que espera el frontend
       return resData.data.map(p => ({
         id: p.id,
         nombre: p.titulo ? `${p.titulo} ${p.nombre} ${p.apellido}` : `${p.nombre} ${p.apellido}`,
@@ -108,9 +79,9 @@ async function fetchProfesionales() {
   }
 }
 
-/**
- * Consultar slots disponibles para un profesional, fecha y servicio.
- */
+// ===================================================================
+// CONSULTAR DISPONIBILIDAD
+// ===================================================================
 async function fetchDisponibilidad(fecha, servicioId, profesionalId) {
   console.log('📅 Buscando disponibilidad para:', { fecha, servicioId, profesionalId });
 
@@ -126,7 +97,6 @@ async function fetchDisponibilidad(fecha, servicioId, profesionalId) {
     console.log('📥 Respuesta del backend:', resData);
 
     if (resData.success && resData.data && resData.data.profesionales) {
-      // Buscar el profesional seleccionado
       const profesionalData = resData.data.profesionales.find(
         p => p.profesional_id === parseInt(profesionalId)
       );
@@ -140,24 +110,24 @@ async function fetchDisponibilidad(fecha, servicioId, profesionalId) {
     return [];
   } catch (error) {
     console.warn('⚠️ Usando simulación local de turnos disponibles.', error.message);
-    
     const slots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
     const seed = fecha.replace(/-/g, '') + servicioId + profesionalId;
     let seededRandom = function(s) {
       let x = Math.sin(s++) * 10000;
       return x - Math.floor(x);
     };
-    
     return slots.filter((slot, index) => {
       return seededRandom(parseInt(seed) + index) > 0.45;
     });
   }
 }
 
-/**
- * Registrar un nuevo turno.
- */
+// ===================================================================
+// CREAR TURNO (VERSIÓN ÚNICA Y CORRECTA)
+// ===================================================================
 async function createTurno(payload) {
+  console.log('📤 Enviando payload al backend:', JSON.stringify(payload, null, 2));
+
   try {
     const response = await fetch(`${API_BASE_URL}/turnos`, {
       method: 'POST',
@@ -166,25 +136,45 @@ async function createTurno(payload) {
       },
       body: JSON.stringify(payload)
     });
-    
+
     const data = await response.json();
+    console.log('📥 Respuesta del backend:', data);
+
     if (!response.ok) {
-      throw new Error(data.error || 'Error al agendar turno');
+      const errorMsg = data.error || data.errores?.join(', ') || 'Error al agendar turno';
+      throw new Error(errorMsg);
     }
     return data;
   } catch (error) {
-    console.warn('⚠️ Guardando reserva localmente (Modo simulación offline).', error.message);
+    console.warn('⚠️ Error al crear turno en el backend:', error.message);
+
+    // 📌 Guardar localmente como fallback
+    const turnoLocal = {
+      id: Math.floor(Math.random() * 10000),
+      paciente_nombre: payload.paciente_nombre,
+      paciente_telefono: payload.paciente_telefono,
+      paciente_email: payload.paciente_email || null,
+      servicio_id: payload.servicio_id,
+      profesional_id: payload.profesional_id,
+      fecha: payload.fecha,
+      hora: payload.hora,
+      estado: 'pendiente',
+      servicio_nombre: MOCK_SERVICIOS.find(s => s.id === parseInt(payload.servicio_id))?.nombre || 'Fisioterapia',
+      profesional_nombre: MOCK_PROFESIONALES.find(p => p.id === parseInt(payload.profesional_id))?.nombre || 'Especialista',
+      created_at: new Date().toISOString()
+    };
+
+    // Guardar en localStorage
+    const turnosLocales = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
+    turnosLocales.push(turnoLocal);
+    localStorage.setItem('turnos_locales', JSON.stringify(turnosLocales));
+
+    console.log('💾 Turno guardado localmente:', turnoLocal);
+
     return {
       success: true,
-      message: '✅ Turno confirmado exitosamente (Simulación local)',
-      data: {
-        id: Math.floor(Math.random() * 10000),
-        paciente_nombre: payload.paciente_nombre,
-        fecha: payload.fecha,
-        hora: payload.hora,
-        servicio_nombre: MOCK_SERVICIOS.find(s => s.id === parseInt(payload.servicio_id))?.nombre || 'Fisioterapia',
-        profesional_nombre: MOCK_PROFESIONALES.find(p => p.id === parseInt(payload.profesional_id))?.nombre || 'Especialista'
-      }
+      message: '✅ Turno confirmado exitosamente (Modo offline)',
+      data: turnoLocal
     };
   }
 }

@@ -878,16 +878,27 @@
 // ===================================================================
 // CITAS - CARGAR DESDE BACKEND (con selector de fecha)
 // ===================================================================
-async function cargarCitas() {
-  // Usar la fecha seleccionada o la de hoy
-  const input = document.getElementById('fechaCitas');
-  if (input && input.value) {
-    const fecha = input.value;
-    await cargarCitasPorFecha(fecha);
-  } else {
-    // Si no hay selector, usar hoy
-    const hoy = new Date().toISOString().split('T')[0];
-    await cargarCitasPorFecha(hoy);
+async function cargarCitasPorFecha(fecha) {
+  try {
+    // Obtener citas del backend
+    const response = await fetch(`${API_URL}/turnos`);
+    if (!response.ok) throw new Error('Error al cargar citas');
+    const data = await response.json();
+
+    // Obtener turnos locales
+    const turnosLocales = cargarTurnosLocales();
+
+    // Combinar ambos
+    let turnos = data.data || [];
+    turnos = [...turnos, ...turnosLocales];
+
+    console.log(`📋 Total de citas (backend + local): ${turnos.length}`);
+
+    const citasFecha = turnos.filter(t => t.fecha === fecha);
+    renderizarCitasPorFecha(turnos, fecha);
+    actualizarKPIs(turnos);
+  } catch (error) {
+    console.error('❌ Error al cargar citas:', error);
   }
 }
 
@@ -1643,6 +1654,24 @@ function renderizarCitasPorFecha(turnos, fecha) {
     `;
   }).join('');
 }
+
+// ===================================================================
+// CARGAR TURNOS LOCALES (desde localStorage)
+// ===================================================================
+function cargarTurnosLocales() {
+  try {
+    const turnos = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
+    if (turnos.length > 0) {
+      console.log('📋 Turnos locales encontrados:', turnos.length);
+      return turnos;
+    }
+    return [];
+  } catch (error) {
+    console.warn('Error cargando turnos locales:', error);
+    return [];
+  }
+}
+
 </script>
 
 </body>
