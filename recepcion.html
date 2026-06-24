@@ -1131,43 +1131,53 @@ function actualizarKPIs(turnos) {
     }
   }
 
-  // ===================================================================
-  // REGISTRAR PAGO
-  // ===================================================================
-  async function registrarPagoBackend(turnoId) {
-    try {
-      const response = await fetch(`${API_URL}/turnos/${turnoId}/pago`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monto: 50, metodo: 'efectivo' })
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast('💰 Pago registrado en caja.');
-        actualizarCaja(50);
-      }
-    } catch (error) {
-      console.warn('⚠️ No se pudo registrar el pago:', error);
-    }
-  }
-
-  // ===================================================================
-  // ACTUALIZAR CAJA
-  // ===================================================================
-  function actualizarCaja(monto) {
-    totalCaja += monto;
-    document.getElementById('kpiCaja').innerHTML = totalCaja + ' <span style="font-size:1rem;">Bs.</span>';
-    const movimientos = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
-    movimientos.push({
-      fecha: new Date().toLocaleDateString('es-BO'),
-      hora: new Date().toLocaleTimeString('es-BO', {hour:'2-digit',minute:'2-digit'}),
-      concepto: 'Pago de sesión',
-      monto: monto,
-      tipo: 'ingreso'
+// ===================================================================
+// REGISTRAR PAGO
+// ===================================================================
+async function registrarPagoBackend(turnoId) {
+  try {
+    const response = await fetch(`${API_URL}/turnos/${turnoId}/pago`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monto: 50, metodo: 'efectivo' })
     });
-    localStorage.setItem('caja_movimientos', JSON.stringify(movimientos));
+    const data = await response.json();
+    if (data.success) {
+      toast('💰 Pago registrado en caja.');
+      // Actualizar caja con el monto
+      actualizarCaja(50);
+    }
+  } catch (error) {
+    console.warn('⚠️ No se pudo registrar el pago:', error);
+    // Si falla el backend, registrar localmente igual
+    actualizarCaja(50);
+    toast('💰 Pago registrado localmente.');
   }
+}
 
+// ===================================================================
+// ACTUALIZAR CAJA - Sincroniza el KPI con la caja diaria
+// ===================================================================
+function actualizarCaja(monto) {
+  totalCaja += monto;
+  
+  // Actualizar el KPI en Gestión de Citas
+  document.getElementById('kpiCaja').innerHTML = totalCaja + ' <span style="font-size:1rem;">Bs.</span>';
+  
+  // Guardar en localStorage
+  const movimientos = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
+  movimientos.push({
+    fecha: new Date().toLocaleDateString('es-BO'),
+    hora: new Date().toLocaleTimeString('es-BO', {hour:'2-digit',minute:'2-digit'}),
+    concepto: 'Pago de sesión',
+    monto: monto,
+    tipo: 'ingreso'
+  });
+  localStorage.setItem('caja_movimientos', JSON.stringify(movimientos));
+  
+  // Actualizar también el total en la pestaña Caja Diaria
+  cargarCaja();
+}
   // ===================================================================
   // REGISTRO DE PACIENTES
   // ===================================================================
@@ -1264,34 +1274,39 @@ function actualizarKPIs(turnos) {
     toast('❌ Paciente eliminado.');
   }
 
-  // ===================================================================
-  // CAJA DIARIA
-  // ===================================================================
-  function cargarCaja() {
-    const movimientos = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
-    const hoy = new Date().toLocaleDateString('es-BO');
-    const movimientosHoy = movimientos.filter(m => m.fecha === hoy);
+// ===================================================================
+// CAJA DIARIA
+// ===================================================================
+function cargarCaja() {
+  const movimientos = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
+  const hoy = new Date().toLocaleDateString('es-BO');
+  const movimientosHoy = movimientos.filter(m => m.fecha === hoy);
 
-    const total = movimientosHoy.reduce((sum, m) => sum + m.monto, 0);
-    document.getElementById('cajaTotal').innerHTML = total + ' <span style="font-size:1.5rem;">Bs.</span>';
+  const total = movimientosHoy.reduce((sum, m) => sum + m.monto, 0);
+  
+  // Actualizar el total en la pestaña Caja Diaria
+  document.getElementById('cajaTotal').innerHTML = total + ' <span style="font-size:1.5rem;">Bs.</span>';
+  
+  // También actualizar el KPI en Gestión de Citas
+  document.getElementById('kpiCaja').innerHTML = total + ' <span style="font-size:1rem;">Bs.</span>';
 
-    const container = document.getElementById('listaMovimientos');
-    if (movimientosHoy.length === 0) {
-      container.innerHTML = '<p style="text-align:center;color:var(--text-body);padding:20px;">No hay movimientos registrados hoy.</p>';
-      return;
-    }
-
-    container.innerHTML = movimientosHoy.map(m => `
-      <div class="paciente-row">
-        <div class="info">
-          <strong>${m.hora}</strong> · ${m.concepto}
-        </div>
-        <div>
-          <span style="font-weight:700;color:#10B981;">+${m.monto} Bs.</span>
-        </div>
-      </div>
-    `).join('');
+  const container = document.getElementById('listaMovimientos');
+  if (movimientosHoy.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:var(--text-body);padding:20px;">No hay movimientos registrados hoy.</p>';
+    return;
   }
+
+  container.innerHTML = movimientosHoy.map(m => `
+    <div class="paciente-row">
+      <div class="info">
+        <strong>${m.hora}</strong> · ${m.concepto}
+      </div>
+      <div>
+        <span style="font-weight:700;color:#10B981;">+${m.monto} Bs.</span>
+      </div>
+    </div>
+  `).join('');
+}
 
   function limpiarCaja() {
     if (!confirm('⚠️ ¿Reiniciar la caja diaria? Esto eliminará todos los movimientos del día.')) return;
@@ -1305,7 +1320,7 @@ function actualizarKPIs(turnos) {
     toast('🔄 Caja reiniciada.');
   }
 
-// ===================================================================
+/ ===================================================================
 // AGENDAMIENTO MÚLTIPLE - CARGAR DATOS
 // ===================================================================
 async function cargarDatosMulti() {
@@ -1337,37 +1352,51 @@ async function cargarDatosMulti() {
         selectServicio.appendChild(opt);
       });
       console.log('✅ Servicios cargados:', data.data.length);
+    } else {
+      console.warn('⚠️ No se encontraron servicios');
     }
   } catch (error) {
     console.warn('⚠️ Error cargando servicios:', error);
   }
 
-  // Cargar profesionales
+  // Cargar profesionales - VERSIÓN CORREGIDA
   try {
     console.log('🔄 Cargando profesionales...');
     const response = await fetch(`${API_URL}/profesionales`);
     const data = await response.json();
+    console.log('📥 Respuesta profesionales:', data);
+    
     const selectProfesional = document.getElementById('multiProfesional');
     selectProfesional.innerHTML = '<option value="">Seleccione un profesional</option>';
-    if (data.success && data.data) {
+    
+    if (data.success && data.data && data.data.length > 0) {
       data.data.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        // Mostrar nombre completo con título si existe
-        let nombreCompleto = p.nombre;
+        // Mostrar nombre completo
+        let nombreDisplay = p.nombre || 'Sin nombre';
         if (p.apellido) {
-          nombreCompleto = `${p.nombre} ${p.apellido}`;
+          nombreDisplay = `${nombreDisplay} ${p.apellido}`;
         }
         if (p.titulo) {
-          nombreCompleto = `${p.titulo} ${nombreCompleto}`;
+          nombreDisplay = `${p.titulo} ${nombreDisplay}`;
         }
-        opt.textContent = nombreCompleto;
+        opt.textContent = nombreDisplay;
         selectProfesional.appendChild(opt);
       });
-      console.log('✅ Profesionales cargados:', data.data.length);
+      console.log(`✅ ${data.data.length} profesionales cargados`);
+    } else {
+      console.warn('⚠️ No se encontraron profesionales en la respuesta');
+      // Agregar opción de fallback
+      const opt = document.createElement('option');
+      opt.value = "";
+      opt.textContent = "No hay profesionales disponibles";
+      selectProfesional.appendChild(opt);
     }
   } catch (error) {
-    console.warn('⚠️ Error cargando profesionales:', error);
+    console.error('❌ Error cargando profesionales:', error);
+    const selectProfesional = document.getElementById('multiProfesional');
+    selectProfesional.innerHTML = '<option value="">Error al cargar profesionales</option>';
   }
 
   // Fecha de inicio por defecto: mañana
