@@ -1305,63 +1305,80 @@ function actualizarKPIs(turnos) {
     toast('🔄 Caja reiniciada.');
   }
 
-  // ===================================================================
-  // AGENDAMIENTO MÚLTIPLE
-  // ===================================================================
-  async function cargarDatosMulti() {
-    const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
-    const selectPaciente = document.getElementById('multiPaciente');
-    selectPaciente.innerHTML = '<option value="">Seleccione un paciente existente</option>';
-    pacientes.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = `${p.nombre} (${p.ci})`;
-      selectPaciente.appendChild(opt);
-    });
+// ===================================================================
+// AGENDAMIENTO MÚLTIPLE - CARGAR DATOS
+// ===================================================================
+async function cargarDatosMulti() {
+  console.log('🔄 Cargando datos para agendamiento múltiple...');
+  
+  // Cargar pacientes desde localStorage
+  const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
+  const selectPaciente = document.getElementById('multiPaciente');
+  selectPaciente.innerHTML = '<option value="">Seleccione un paciente existente</option>';
+  pacientes.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.nombre} (${p.ci})`;
+    selectPaciente.appendChild(opt);
+  });
 
-    try {
-      const response = await fetch(`${API_URL}/servicios`);
-      const data = await response.json();
-      const selectServicio = document.getElementById('multiServicio');
-      selectServicio.innerHTML = '<option value="">Seleccione un servicio</option>';
-      if (data.success && data.data) {
-        data.data.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = `${s.nombre} - ${s.duracion_min || 45} min (${s.precio || 0} Bs.)`;
-          selectServicio.appendChild(opt);
-        });
-      }
-    } catch (error) {
-      console.warn('Error cargando servicios:', error);
+  // Cargar servicios
+  try {
+    console.log('🔄 Cargando servicios...');
+    const response = await fetch(`${API_URL}/servicios`);
+    const data = await response.json();
+    const selectServicio = document.getElementById('multiServicio');
+    selectServicio.innerHTML = '<option value="">Seleccione un servicio</option>';
+    if (data.success && data.data) {
+      data.data.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.nombre} - ${s.duracion_min || 45} min (${s.precio || 0} Bs.)`;
+        selectServicio.appendChild(opt);
+      });
+      console.log('✅ Servicios cargados:', data.data.length);
     }
-
-    try {
-      const response = await fetch(`${API_URL}/profesionales`);
-      const data = await response.json();
-      const selectProfesional = document.getElementById('multiProfesional');
-      selectProfesional.innerHTML = '<option value="">Seleccione un profesional</option>';
-      if (data.success && data.data) {
-        data.data.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.id;
-          const nombreCompleto = p.titulo ? `${p.titulo} ${p.nombre} ${p.apellido}` : `${p.nombre} ${p.apellido}`;
-          opt.textContent = nombreCompleto;
-          selectProfesional.appendChild(opt);
-        });
-      }
-    } catch (error) {
-      console.warn('Error cargando profesionales:', error);
-    }
-
-    const fechaInicio = document.getElementById('multiFechaInicio');
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    fechaInicio.value = tomorrow.toISOString().split('T')[0];
-    fechaInicio.min = tomorrow.toISOString().split('T')[0];
-
-    actualizarResumen();
+  } catch (error) {
+    console.warn('⚠️ Error cargando servicios:', error);
   }
+
+  // Cargar profesionales
+  try {
+    console.log('🔄 Cargando profesionales...');
+    const response = await fetch(`${API_URL}/profesionales`);
+    const data = await response.json();
+    const selectProfesional = document.getElementById('multiProfesional');
+    selectProfesional.innerHTML = '<option value="">Seleccione un profesional</option>';
+    if (data.success && data.data) {
+      data.data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        // Mostrar nombre completo con título si existe
+        let nombreCompleto = p.nombre;
+        if (p.apellido) {
+          nombreCompleto = `${p.nombre} ${p.apellido}`;
+        }
+        if (p.titulo) {
+          nombreCompleto = `${p.titulo} ${nombreCompleto}`;
+        }
+        opt.textContent = nombreCompleto;
+        selectProfesional.appendChild(opt);
+      });
+      console.log('✅ Profesionales cargados:', data.data.length);
+    }
+  } catch (error) {
+    console.warn('⚠️ Error cargando profesionales:', error);
+  }
+
+  // Fecha de inicio por defecto: mañana
+  const fechaInicio = document.getElementById('multiFechaInicio');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  fechaInicio.value = tomorrow.toISOString().split('T')[0];
+  fechaInicio.min = tomorrow.toISOString().split('T')[0];
+
+  actualizarResumen();
+}
 
   function toggleDia(el) {
     const day = parseInt(el.dataset.day);
