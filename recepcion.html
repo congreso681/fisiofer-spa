@@ -602,20 +602,22 @@
       </div>
     </div>
 
-  <!-- ========== SELECTOR DE FECHA ========== -->
-  <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
-    <button class="btn-accion" onclick="cambiarFechaCitas(-1)">◀ Anterior</button>
-    <input type="date" id="fechaCitas" class="form-control" style="width:auto; min-width:180px;">
-    <button class="btn-accion" onclick="cambiarFechaCitas(1)">Siguiente ▶</button>
-    <button class="btn-accion" onclick="irHoyCitas()" style="background:var(--primary);color:white;border-color:var(--primary);">📅 Hoy</button>
-    <span id="fechaCitasLabel" style="font-weight:600;color:var(--primary-dark);font-size:0.9rem;"></span>
-  </div>
+    <!-- ========== SELECTOR DE FECHA ========== -->
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+      <button class="btn-accion" onclick="cambiarFechaCitas(-1)">◀ Anterior</button>
+      <input type="date" id="fechaCitas" class="form-control" style="width:auto; min-width:180px;">
+      <button class="btn-accion" onclick="cambiarFechaCitas(1)">Siguiente ▶</button>
+      <button class="btn-accion" onclick="irHoyCitas()" style="background:var(--primary);color:white;border-color:var(--primary);">📅 Hoy</button>
+      <span id="fechaCitasLabel" style="font-weight:600;color:var(--primary-dark);font-size:0.9rem;"></span>
+    </div>
 
     <!-- TABLA DE CITAS -->
     <div class="table-wrap">
       <div class="table-header">
         <h3>Citas del día</h3>
-        <button class="btn-accion" onclick="toast('📅 Abriendo formulario de nueva cita...')"><i class="fas fa-plus"></i> Nueva Cita</button>
+        <button class="btn-accion" onclick="abrirNuevaCita()" style="background:var(--primary);color:white;border-color:var(--primary);">
+          <i class="fas fa-plus"></i> Nueva Cita
+        </button>
       </div>
       <table>
         <thead>
@@ -827,7 +829,8 @@
   // ===================================================================
   const API_URL = 'https://fisiofer-backend-production.up.railway.app/api';
   let totalCaja = 0;
-  let diasSeleccionados = [3, 5]; // Miércoles y Viernes por defecto
+  let diasSeleccionados = [3, 5];
+  let fechaCitasActual = new Date();
 
   // ===================================================================
   // VERIFICAR SESIÓN
@@ -875,49 +878,106 @@
     if (panel === 'caja') cargarCaja();
   }
 
-// ===================================================================
-// CITAS - CARGAR DESDE BACKEND (con selector de fecha)
-// ===================================================================
-async function cargarCitasPorFecha(fecha) {
-  try {
-    // Obtener citas del backend
-    const response = await fetch(`${API_URL}/turnos`);
-    if (!response.ok) throw new Error('Error al cargar citas');
-    const data = await response.json();
-
-    // Obtener turnos locales
-    const turnosLocales = cargarTurnosLocales();
-
-    // Combinar ambos
-    let turnos = data.data || [];
-    turnos = [...turnos, ...turnosLocales];
-
-    console.log(`📋 Total de citas (backend + local): ${turnos.length}`);
-
-    const citasFecha = turnos.filter(t => t.fecha === fecha);
-    renderizarCitasPorFecha(turnos, fecha);
-    actualizarKPIs(turnos);
-  } catch (error) {
-    console.error('❌ Error al cargar citas:', error);
+  // ===================================================================
+  // SELECTOR DE FECHA
+  // ===================================================================
+  function formatearFecha(fecha) {
+    return fecha.toISOString().split('T')[0];
   }
-}
 
-  function renderizarCitas(turnos) {
+  function formatearFechaLegible(fecha) {
+    return fecha.toLocaleDateString('es-BO', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+  }
+
+  function actualizarFechaCitas() {
+    const input = document.getElementById('fechaCitas');
+    const label = document.getElementById('fechaCitasLabel');
+    input.value = formatearFecha(fechaCitasActual);
+    label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
+    cargarCitasPorFecha(formatearFecha(fechaCitasActual));
+  }
+
+  function cambiarFechaCitas(dias) {
+    fechaCitasActual.setDate(fechaCitasActual.getDate() + dias);
+    actualizarFechaCitas();
+  }
+
+  function irHoyCitas() {
+    fechaCitasActual = new Date();
+    actualizarFechaCitas();
+  }
+
+  // ===================================================================
+  // CARGAR TURNOS LOCALES
+  // ===================================================================
+  function cargarTurnosLocales() {
+    try {
+      const turnos = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
+      if (turnos.length > 0) {
+        console.log('📋 Turnos locales encontrados:', turnos.length);
+        return turnos;
+      }
+      return [];
+    } catch (error) {
+      console.warn('Error cargando turnos locales:', error);
+      return [];
+    }
+  }
+
+  // ===================================================================
+  // CARGAR CITAS POR FECHA
+  // ===================================================================
+  async function cargarCitasPorFecha(fecha) {
+    console.log('🔄 Cargando citas para:', fecha);
+    
+    try {
+      // Obtener citas del backend
+      const response = await fetch(`${API_URL}/turnos`);
+      if (!response.ok) throw new Error('Error al cargar citas');
+      const data = await response.json();
+
+      // Obtener turnos locales
+      const turnosLocales = cargarTurnosLocales();
+
+      // Combinar ambos
+      let turnos = data.data || [];
+      turnos = [...turnos, ...turnosLocales];
+
+      console.log(`📋 Total de citas (backend + local): ${turnos.length}`);
+
+      // Filtrar por fecha
+      const citasFecha = turnos.filter(t => t.fecha === fecha);
+      renderizarCitas(citasFecha, fecha);
+      actualizarKPIs(turnos);
+    } catch (error) {
+      console.error('❌ Error al cargar citas:', error);
+      document.getElementById('citasBody').innerHTML = `
+        <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
+      `;
+    }
+  }
+
+  // ===================================================================
+  // RENDERIZAR CITAS
+  // ===================================================================
+  function renderizarCitas(citas, fecha) {
     const tbody = document.getElementById('citasBody');
-    const hoy = new Date().toISOString().split('T')[0];
-    const citasHoy = turnos.filter(t => t.fecha === hoy);
 
-    if (citasHoy.length === 0) {
+    if (!citas || citas.length === 0) {
       tbody.innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas para hoy.</td></tr>
+        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">
+          No hay citas para el ${formatearFechaLegible(new Date(fecha))}.
+        </td></tr>
       `;
       return;
     }
 
     // Ordenar por hora
-    citasHoy.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+    citas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
 
-    tbody.innerHTML = citasHoy.map(t => {
+    tbody.innerHTML = citas.map(t => {
       const estado = t.estado || 'pendiente';
       const badgeClass = {
         'pendiente': 'badge-pendiente',
@@ -956,19 +1016,46 @@ async function cargarCitasPorFecha(fecha) {
     }).join('');
   }
 
+  // ===================================================================
+  // ACTUALIZAR KPIs
+  // ===================================================================
   function actualizarKPIs(turnos) {
     const hoy = new Date().toISOString().split('T')[0];
     const citasHoy = turnos.filter(t => t.fecha === hoy);
 
     document.getElementById('kpiCitados').textContent = citasHoy.length;
     document.getElementById('kpiEspera').textContent = citasHoy.filter(t => t.estado === 'pendiente').length;
-
     const confirmados = citasHoy.filter(t => t.estado === 'confirmado' || t.estado === 'completado').length;
     document.getElementById('kpiCamillas').innerHTML = `${confirmados} <span style="font-size:1rem;color:var(--text-body)">/ 5</span>`;
   }
 
   // ===================================================================
-  // CITAS - ACCIONES (Confirmar, Cancelar, Finalizar)
+  // NUEVA CITA - ABRIR FORMULARIO
+  // ===================================================================
+  function abrirNuevaCita() {
+    // Cambiar al panel de citas si no está activo
+    const panelCitas = document.getElementById('panel-citas');
+    if (!panelCitas.classList.contains('active')) {
+      cambiarPanel('citas', document.querySelector('[data-panel="citas"] a'));
+    }
+    
+    // Scroll al formulario de admisión
+    const formSection = document.querySelector('.form-section:last-of-type');
+    if (formSection) {
+      formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    // Enfocar el primer campo
+    setTimeout(() => {
+      const input = document.getElementById('admNombre');
+      if (input) input.focus();
+    }, 500);
+    
+    toast('📝 Completa el formulario para registrar una nueva cita');
+  }
+
+  // ===================================================================
+  // CITAS - ACCIONES
   // ===================================================================
   async function confirmarCita(id) {
     try {
@@ -980,7 +1067,7 @@ async function cargarCitasPorFecha(fecha) {
       const data = await response.json();
       if (data.success) {
         toast('✅ Cita confirmada. Camilla asignada.');
-        cargarCitas();
+        actualizarFechaCitas();
       } else {
         toast('❌ Error al confirmar la cita.');
       }
@@ -1001,7 +1088,7 @@ async function cargarCitasPorFecha(fecha) {
       const data = await response.json();
       if (data.success) {
         toast('❌ Cita cancelada.');
-        cargarCitas();
+        actualizarFechaCitas();
       } else {
         toast('❌ Error al cancelar la cita.');
       }
@@ -1021,7 +1108,7 @@ async function cargarCitasPorFecha(fecha) {
       const data = await response.json();
       if (data.success) {
         toast('✅ Cita finalizada. Camilla liberada.');
-        cargarCitas();
+        actualizarFechaCitas();
         registrarPagoBackend(id);
       } else {
         toast('❌ Error al finalizar la cita.');
@@ -1052,7 +1139,6 @@ async function cargarCitasPorFecha(fecha) {
   function actualizarCaja(monto) {
     totalCaja += monto;
     document.getElementById('kpiCaja').innerHTML = totalCaja + ' <span style="font-size:1rem;">Bs.</span>';
-    // Guardar en localStorage
     const movimientos = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
     movimientos.push({
       fecha: new Date().toLocaleDateString('es-BO'),
@@ -1205,7 +1291,6 @@ async function cargarCitasPorFecha(fecha) {
   // AGENDAMIENTO MÚLTIPLE
   // ===================================================================
   async function cargarDatosMulti() {
-    // Cargar pacientes desde localStorage
     const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
     const selectPaciente = document.getElementById('multiPaciente');
     selectPaciente.innerHTML = '<option value="">Seleccione un paciente existente</option>';
@@ -1216,7 +1301,6 @@ async function cargarCitasPorFecha(fecha) {
       selectPaciente.appendChild(opt);
     });
 
-    // Cargar servicios
     try {
       const response = await fetch(`${API_URL}/servicios`);
       const data = await response.json();
@@ -1234,7 +1318,6 @@ async function cargarCitasPorFecha(fecha) {
       console.warn('Error cargando servicios:', error);
     }
 
-    // Cargar profesionales
     try {
       const response = await fetch(`${API_URL}/profesionales`);
       const data = await response.json();
@@ -1253,7 +1336,6 @@ async function cargarCitasPorFecha(fecha) {
       console.warn('Error cargando profesionales:', error);
     }
 
-    // Fecha de inicio por defecto: mañana
     const fechaInicio = document.getElementById('multiFechaInicio');
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1330,7 +1412,6 @@ async function cargarCitasPorFecha(fecha) {
     const fechaInicio = document.getElementById('multiFechaInicio').value;
     const resultado = document.getElementById('multiResultado');
 
-    // Validaciones
     if (!pacienteSelect.value && !pacienteNuevo) {
       resultado.style.display = 'block';
       resultado.style.background = '#FEF2F2';
@@ -1371,7 +1452,6 @@ async function cargarCitasPorFecha(fecha) {
       return;
     }
 
-    // Obtener nombre del paciente
     let nombrePaciente = pacienteNuevo;
     if (pacienteSelect.value) {
       const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
@@ -1387,7 +1467,6 @@ async function cargarCitasPorFecha(fecha) {
       return;
     }
 
-    // Generar fechas
     const fechas = generarFechasSesiones(fechaInicio, diasSeleccionados, sesiones);
 
     if (fechas.length === 0) {
@@ -1398,7 +1477,6 @@ async function cargarCitasPorFecha(fecha) {
       return;
     }
 
-    // Crear turnos
     let creados = 0;
     let errores = 0;
 
@@ -1446,7 +1524,7 @@ async function cargarCitasPorFecha(fecha) {
         📅 Primera: ${fechas[0]} · Última: ${fechas[fechas.length-1]}
       `;
       toast(`✅ ${creados} sesiones agendadas para ${nombrePaciente}`);
-      cargarCitas();
+      actualizarFechaCitas();
     } else {
       resultado.style.background = '#FEF2F2';
       resultado.style.color = '#991B1B';
@@ -1519,159 +1597,32 @@ async function cargarCitasPorFecha(fecha) {
   // ===================================================================
   // INICIALIZAR
   // ===================================================================
-document.addEventListener('DOMContentLoaded', function() {
-  // Inicializar selector de fecha
-  const inputFecha = document.getElementById('fechaCitas');
-  if (inputFecha) {
-    const hoy = new Date();
-    inputFecha.value = hoy.toISOString().split('T')[0];
-    inputFecha.addEventListener('change', function() {
-      fechaCitasActual = new Date(this.value + 'T00:00:00');
-      actualizarFechaCitas();
-    });
-  }
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Inicializando recepcion.html...');
 
-  cargarCitas();
-  cargarPacientes();
-  cargarCaja();
-  cargarDatosMulti();
+    // Inicializar selector de fecha
+    const inputFecha = document.getElementById('fechaCitas');
+    if (inputFecha) {
+      const hoy = new Date();
+      fechaCitasActual = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+      inputFecha.value = formatearFecha(fechaCitasActual);
+      inputFecha.addEventListener('change', function() {
+        const parts = this.value.split('-');
+        fechaCitasActual = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        actualizarFechaCitas();
+      });
+    }
 
-  // Event listeners para actualizar resumen
-  document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
-  document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
-});
+    // Cargar datos
+    actualizarFechaCitas();
+    cargarPacientes();
+    cargarCaja();
+    cargarDatosMulti();
 
-  // ===================================================================
-// SELECTOR DE FECHA PARA CITAS
-// ===================================================================
-let fechaCitasActual = new Date();
-
-function formatearFecha(fecha) {
-  return fecha.toISOString().split('T')[0];
-}
-
-function formatearFechaLegible(fecha) {
-  return fecha.toLocaleDateString('es-BO', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
+    // Event listeners
+    document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
+    document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
   });
-}
-
-function actualizarFechaCitas() {
-  const input = document.getElementById('fechaCitas');
-  const label = document.getElementById('fechaCitasLabel');
-  input.value = formatearFecha(fechaCitasActual);
-  label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
-  cargarCitasPorFecha(formatearFecha(fechaCitasActual));
-}
-
-function cambiarFechaCitas(dias) {
-  fechaCitasActual.setDate(fechaCitasActual.getDate() + dias);
-  actualizarFechaCitas();
-}
-
-function irHoyCitas() {
-  fechaCitasActual = new Date();
-  actualizarFechaCitas();
-}
-
-// ===================================================================
-// CARGAR CITAS POR FECHA ESPECÍFICA
-// ===================================================================
-async function cargarCitasPorFecha(fecha) {
-  try {
-    const response = await fetch(`${API_URL}/turnos?fecha=${fecha}`);
-    if (!response.ok) throw new Error('Error al cargar citas');
-    const data = await response.json();
-
-    if (data.success && data.data) {
-      renderizarCitasPorFecha(data.data, fecha);
-      actualizarKPIs(data.data);
-    } else {
-      document.getElementById('citasBody').innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas para esta fecha.</td></tr>
-      `;
-    }
-  } catch (error) {
-    console.error('❌ Error al cargar citas:', error);
-    document.getElementById('citasBody').innerHTML = `
-      <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
-    `;
-  }
-}
-
-function renderizarCitasPorFecha(turnos, fecha) {
-  const tbody = document.getElementById('citasBody');
-  const citasFecha = turnos.filter(t => t.fecha === fecha);
-
-  if (citasFecha.length === 0) {
-    tbody.innerHTML = `
-      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas para el ${formatearFechaLegible(new Date(fecha))}.</td></tr>
-    `;
-    return;
-  }
-
-  // Ordenar por hora
-  citasFecha.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
-
-  tbody.innerHTML = citasFecha.map(t => {
-    const estado = t.estado || 'pendiente';
-    const badgeClass = {
-      'pendiente': 'badge-pendiente',
-      'confirmado': 'badge-confirmado',
-      'completado': 'badge-completado',
-      'cancelado': 'badge-cancelado'
-    }[estado] || 'badge-pendiente';
-
-    let acciones = '';
-    if (estado === 'pendiente') {
-      acciones = `
-        <button class="btn-accion" onclick="confirmarCita(${t.id})">Confirmar</button>
-        <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
-      `;
-    } else if (estado === 'confirmado') {
-      acciones = `
-        <button class="btn-accion success" onclick="finalizarCitaBackend(${t.id})">Finalizar</button>
-        <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
-      `;
-    } else if (estado === 'completado') {
-      acciones = `<span style="color:var(--text-body);font-size:0.7rem;">✅ Completado</span>`;
-    } else {
-      acciones = `<span style="color:var(--text-body);font-size:0.7rem;">${estado}</span>`;
-    }
-
-    return `
-      <tr>
-        <td><strong>${t.hora || '--:--'}</strong></td>
-        <td>${t.paciente_nombre || 'N/A'}</td>
-        <td>${t.profesional_nombre || 'N/A'}</td>
-        <td>${t.servicio_nombre || 'N/A'}</td>
-        <td><span class="badge-estado ${badgeClass}">${estado}</span></td>
-        <td>${acciones}</td>
-      </tr>
-    `;
-  }).join('');
-}
-
-// ===================================================================
-// CARGAR TURNOS LOCALES (desde localStorage)
-// ===================================================================
-function cargarTurnosLocales() {
-  try {
-    const turnos = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
-    if (turnos.length > 0) {
-      console.log('📋 Turnos locales encontrados:', turnos.length);
-      return turnos;
-    }
-    return [];
-  } catch (error) {
-    console.warn('Error cargando turnos locales:', error);
-    return [];
-  }
-}
-
 </script>
 
 </body>
