@@ -869,7 +869,10 @@
 // FUNCIONES DE FECHA
 // ===================================================================
 function formatearFecha(fecha) {
-  return fecha.toISOString().split('T')[0];
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, '0');
+  const day = String(fecha.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatearFechaLegible(fecha) {
@@ -903,7 +906,7 @@ function irHoyCitas() {
 }
 
 // ===================================================================
-// CARGAR CITAS POR FECHA
+// CARGAR CITAS POR FECHA - CON NORMALIZACIÓN DE FECHAS
 // ===================================================================
 async function cargarCitasPorFecha(fecha) {
   console.log('🔄 Cargando citas para:', fecha);
@@ -915,9 +918,18 @@ async function cargarCitasPorFecha(fecha) {
 
     let turnos = data.data || [];
     console.log(`📋 Total de citas en backend: ${turnos.length}`);
+    
+    // Normalizar fechas: extraer solo YYYY-MM-DD
+    const turnosNormalizados = turnos.map(t => ({
+      ...t,
+      fechaNormalizada: t.fecha ? t.fecha.split('T')[0] : null
+    }));
+    
+    console.log('📋 Turnos normalizados:', turnosNormalizados);
 
-    const citasFecha = turnos.filter(t => t.fecha === fecha);
-    console.log(`📅 Citas para ${fecha}:`, citasFecha);
+    // Filtrar por fecha comparando con la fecha normalizada
+    const citasFecha = turnosNormalizados.filter(t => t.fechaNormalizada === fecha);
+    console.log(`📅 Citas para ${fecha}: ${citasFecha.length}`);
 
     renderizarCitas(citasFecha, fecha);
     actualizarKPIs(turnos);
@@ -990,7 +1002,10 @@ function renderizarCitas(citas, fecha) {
 // ===================================================================
 function actualizarKPIs(turnos) {
   const hoy = new Date().toISOString().split('T')[0];
-  const citasHoy = turnos.filter(t => t.fecha === hoy);
+  const citasHoy = turnos.filter(t => {
+    const fecha = t.fecha ? t.fecha.split('T')[0] : null;
+    return fecha === hoy;
+  });
 
   document.getElementById('kpiCitados').textContent = citasHoy.length;
   document.getElementById('kpiEspera').textContent = citasHoy.filter(t => t.estado === 'pendiente').length;
