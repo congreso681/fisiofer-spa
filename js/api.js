@@ -1,8 +1,9 @@
 /* ==========================================
-   FISIOFERSPA BOLIVIA — API CONNECTION LAYER
+   FISIOFER SPA — API CONNECTION LAYER
    ========================================== */
 
-const API_BASE_URL = 'http://localhost:3000/api';
+// 📌 URL de tu backend en Railway
+const API_BASE_URL = 'https://fisiofer-backend-production.up.railway.app/api';
 
 // Datos de fallback (Mock) en caso de que el backend no esté activo
 const MOCK_SERVICIOS = [
