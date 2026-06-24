@@ -1533,6 +1533,13 @@ async function generarSesionesMultiples() {
     return;
   }
 
+  // Obtener teléfono del paciente (de admisión o usar uno por defecto)
+  let telefonoPaciente = document.getElementById('admCelular')?.value?.trim();
+  if (!telefonoPaciente || telefonoPaciente.length < 6) {
+    telefonoPaciente = '70000000'; // Teléfono por defecto
+    console.log('📱 Usando teléfono por defecto:', telefonoPaciente);
+  }
+
   // Generar fechas
   const fechas = generarFechasSesiones(fechaInicio, diasSeleccionados, sesiones);
 
@@ -1557,7 +1564,7 @@ async function generarSesionesMultiples() {
   for (let i = 0; i < fechas.length; i++) {
     const payload = {
       paciente_nombre: nombrePaciente,
-      paciente_telefono: document.getElementById('admCelular')?.value || 'N/A',
+      paciente_telefono: telefonoPaciente,
       paciente_email: null,
       servicio_id: parseInt(servicio),
       profesional_id: parseInt(profesional),
@@ -1574,25 +1581,14 @@ async function generarSesionesMultiples() {
         body: JSON.stringify(payload)
       });
       
-      // Leer la respuesta como texto primero para depuración
-      const responseText = await response.text();
-      console.log(`📥 Respuesta sesión ${i+1} (texto):`, responseText);
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('❌ Error parsing JSON:', e);
-        data = { error: responseText || 'Error desconocido' };
-      }
-      
-      console.log(`📥 Respuesta sesión ${i+1} (parsed):`, data);
+      const data = await response.json();
+      console.log(`📥 Respuesta sesión ${i+1}:`, data);
       
       if (response.ok && data.success) {
         creados++;
       } else {
         errores++;
-        const errorMsg = data.error || data.errores?.join(', ') || data.message || 'Error desconocido';
+        const errorMsg = data.error || data.errores?.join(', ') || 'Error desconocido';
         erroresLista.push(`Sesión ${i+1} (${fechas[i]}): ${errorMsg}`);
         console.warn(`⚠️ Error en sesión ${i+1}:`, data);
       }
