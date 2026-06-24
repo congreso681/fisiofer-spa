@@ -1320,7 +1320,7 @@ function cargarCaja() {
     toast('🔄 Caja reiniciada.');
   }
 
-/ ===================================================================
+// ===================================================================
 // AGENDAMIENTO MÚLTIPLE - CARGAR DATOS
 // ===================================================================
 async function cargarDatosMulti() {
@@ -1359,7 +1359,7 @@ async function cargarDatosMulti() {
     console.warn('⚠️ Error cargando servicios:', error);
   }
 
-  // Cargar profesionales - VERSIÓN CORREGIDA
+  // Cargar profesionales
   try {
     console.log('🔄 Cargando profesionales...');
     const response = await fetch(`${API_URL}/profesionales`);
@@ -1373,7 +1373,6 @@ async function cargarDatosMulti() {
       data.data.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        // Mostrar nombre completo
         let nombreDisplay = p.nombre || 'Sin nombre';
         if (p.apellido) {
           nombreDisplay = `${nombreDisplay} ${p.apellido}`;
@@ -1387,7 +1386,6 @@ async function cargarDatosMulti() {
       console.log(`✅ ${data.data.length} profesionales cargados`);
     } else {
       console.warn('⚠️ No se encontraron profesionales en la respuesta');
-      // Agregar opción de fallback
       const opt = document.createElement('option');
       opt.value = "";
       opt.textContent = "No hay profesionales disponibles";
