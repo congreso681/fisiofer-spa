@@ -280,9 +280,10 @@
       border-radius: 20px;
       text-transform: uppercase;
     }
-    .badge-espera { background: #FEF3C7; color: #92400E; }
-    .badge-camilla { background: var(--accent-bg); color: var(--primary); }
-    .badge-fin { background: #ECFDF5; color: #10B981; }
+    .badge-pendiente { background: #FEF3C7; color: #92400E; }
+    .badge-confirmado { background: var(--accent-bg); color: var(--primary); }
+    .badge-completado { background: #ECFDF5; color: #10B981; }
+    .badge-cancelado { background: #FEF2F2; color: #EF4444; }
 
     .btn-accion {
       font-size: 0.7rem;
@@ -448,6 +449,33 @@
     }
     #toast.show { transform: translateX(-50%) translateY(0); }
 
+    /* ========== AGENDAMIENTO MÚLTIPLE ========== */
+    .day-selector {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-white);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      transition: all 0.15s;
+    }
+    .day-selector:hover {
+      border-color: var(--primary);
+    }
+    .day-selector.selected {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: white;
+    }
+    .multi-resultado {
+      margin-top: 12px;
+      display: none;
+      padding: 12px;
+      border-radius: var(--radius-sutil);
+      font-weight: 600;
+    }
+
     @media (max-width: 1024px) {
       .kpi-grid { grid-template-columns: repeat(2,1fr); }
       .camillas-grid { grid-template-columns: repeat(3,1fr); }
@@ -517,22 +545,22 @@
     <div class="kpi-grid">
       <div class="kpi-card">
         <label>Pacientes Citados Hoy</label>
-        <div class="value" id="kpiCitados">7</div>
+        <div class="value" id="kpiCitados">0</div>
         <span class="sub">para hoy</span>
       </div>
       <div class="kpi-card">
         <label>Camillas Ocupadas</label>
-        <div class="value orange" id="kpiCamillas">3 <span style="font-size:1rem;color:var(--text-body)">/ 5</span></div>
+        <div class="value orange" id="kpiCamillas">0 <span style="font-size:1rem;color:var(--text-body)">/ 5</span></div>
         <span class="sub">en este momento</span>
       </div>
       <div class="kpi-card">
         <label>Ingresos de Caja Hoy</label>
-        <div class="value green" id="kpiCaja">1200 <span style="font-size:1rem;">Bs.</span></div>
+        <div class="value green" id="kpiCaja">0 <span style="font-size:1rem;">Bs.</span></div>
         <span class="sub">efectivo + transferencia</span>
       </div>
       <div class="kpi-card">
         <label>Pacientes en Espera</label>
-        <div class="value red" id="kpiEspera">2</div>
+        <div class="value red" id="kpiEspera">0</div>
         <span class="sub">en sala de espera</span>
       </div>
     </div>
@@ -541,17 +569,17 @@
     <h3 style="font-size:0.85rem;font-weight:700;color:var(--text-body);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">
       <i class="fas fa-bed"></i> Estado de Consultorios
     </h3>
-    <div class="camillas-grid">
-      <div class="cam-slot ocupado">
+    <div class="camillas-grid" id="camillasGrid">
+      <div class="cam-slot libre">
         <div class="cam-name">Consultorio 1</div>
         <div class="cam-type">Clínico · Fisio</div>
-        <div class="cam-badge ocupado">🔴 Ocupado</div>
+        <div class="cam-badge libre">🟢 Libre</div>
         <div style="font-size:0.6rem;margin-top:6px;color:var(--text-body)">Lic. Fidel Villca</div>
       </div>
-      <div class="cam-slot ocupado">
+      <div class="cam-slot libre">
         <div class="cam-name">Consultorio 2</div>
         <div class="cam-type">Clínico · Fisio</div>
-        <div class="cam-badge ocupado">🔴 Ocupado</div>
+        <div class="cam-badge libre">🟢 Libre</div>
         <div style="font-size:0.6rem;margin-top:6px;color:var(--text-body)">Lic. Nelly F.</div>
       </div>
       <div class="cam-slot libre">
@@ -560,10 +588,10 @@
         <div class="cam-badge libre">🟢 Libre</div>
         <div style="font-size:0.6rem;margin-top:6px;color:var(--text-body)">Lic. Roxana R.</div>
       </div>
-      <div class="cam-slot ocupado">
+      <div class="cam-slot libre">
         <div class="cam-name">Sala Spa 1</div>
         <div class="cam-type">Masajes / Relax</div>
-        <div class="cam-badge ocupado">🔴 Ocupado</div>
+        <div class="cam-badge libre">🟢 Libre</div>
         <div style="font-size:0.6rem;margin-top:6px;color:var(--text-body)">Helen Quispe</div>
       </div>
       <div class="cam-slot libre">
@@ -577,56 +605,126 @@
     <!-- TABLA DE CITAS -->
     <div class="table-wrap">
       <div class="table-header">
-        <h3>Citas activas del día</h3>
+        <h3>Citas del día</h3>
         <button class="btn-accion" onclick="toast('📅 Abriendo formulario de nueva cita...')"><i class="fas fa-plus"></i> Nueva Cita</button>
       </div>
       <table>
         <thead>
-          <tr><th>Hora</th><th>Paciente</th><th>Profesional</th><th>Consultorio</th><th>Estado</th><th>Acción</th></tr>
+          <tr><th>Hora</th><th>Paciente</th><th>Profesional</th><th>Servicio</th><th>Estado</th><th>Acción</th></tr>
         </thead>
-        <tbody>
-          <tr>
-            <td><strong>08:30</strong></td>
-            <td>Fernandez Ulo Miguel A.</td>
-            <td>Lic. Fidel Villca</td>
-            <td>Consultorio 1 (Clínico)</td>
-            <td><span class="badge-estado badge-camilla">En Camilla</span></td>
-            <td><button class="btn-accion" onclick="finalizarCita(this)">Finalizar</button></td>
-          </tr>
-          <tr>
-            <td><strong>09:00</strong></td>
-            <td>Juana Pérez Choque</td>
-            <td>Lic. Nelly Fernández</td>
-            <td>Consultorio 2 (Clínico)</td>
-            <td><span class="badge-estado badge-camilla">En Camilla</span></td>
-            <td><button class="btn-accion" onclick="finalizarCita(this)">Finalizar</button></td>
-          </tr>
-          <tr>
-            <td><strong>09:30</strong></td>
-            <td>Carlos Mendoza T.</td>
-            <td>Helen Quispe</td>
-            <td>Sala Spa 1 (Relax)</td>
-            <td><span class="badge-estado badge-espera">En Espera</span></td>
-            <td><button class="btn-accion" onclick="llamarCita(this)">Llamar</button></td>
-          </tr>
-          <tr>
-            <td><strong>10:00</strong></td>
-            <td>Rosa Lima Quispe</td>
-            <td>Lic. Roxana Ramos</td>
-            <td>Consultorio 3 (Clínico)</td>
-            <td><span class="badge-estado badge-espera">En Espera</span></td>
-            <td><button class="btn-accion" onclick="llamarCita(this)">Llamar</button></td>
-          </tr>
-          <tr>
-            <td><strong>10:30</strong></td>
-            <td>Pedro Vargas H.</td>
-            <td>Paula Romero</td>
-            <td>Sala Spa 2 (Estética)</td>
-            <td><span class="badge-estado badge-fin">Finalizado</span></td>
-            <td><button class="btn-accion success" onclick="registrarPago(this)">Pago ✓</button></td>
-          </tr>
+        <tbody id="citasBody">
+          <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">Cargando citas...</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- AGENDAMIENTO MÚLTIPLE (10 SESIONES) -->
+    <!-- ============================================================ -->
+    <div class="form-section" style="border: 2px solid var(--primary); background: #EBF4FF;">
+      <h3 style="color: var(--primary-dark);">
+        <i class="fas fa-calendar-plus"></i> Agendamiento Múltiple (10 Sesiones)
+      </h3>
+      <p style="font-size:0.85rem;color:var(--text-body);margin-bottom:16px;">
+        Programa automáticamente hasta 30 sesiones para un paciente en los días seleccionados.
+      </p>
+
+      <div class="form-grid">
+        <!-- Paciente -->
+        <div class="form-group">
+          <label>Paciente *</label>
+          <select class="form-control" id="multiPaciente">
+            <option value="">Seleccione un paciente existente</option>
+          </select>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <input type="text" class="form-control" id="multiPacienteNuevo" placeholder="O ingrese nombre nuevo" style="flex:1;">
+            <button class="btn-panel-secondary" onclick="agregarPacienteTemporal()">+ Nuevo</button>
+          </div>
+        </div>
+
+        <!-- Servicio -->
+        <div class="form-group">
+          <label>Servicio *</label>
+          <select class="form-control" id="multiServicio">
+            <option value="">Seleccione un servicio</option>
+          </select>
+        </div>
+
+        <!-- Profesional -->
+        <div class="form-group">
+          <label>Profesional *</label>
+          <select class="form-control" id="multiProfesional">
+            <option value="">Seleccione un profesional</option>
+          </select>
+        </div>
+
+        <!-- Número de sesiones -->
+        <div class="form-group">
+          <label>Número de sesiones</label>
+          <input type="number" class="form-control" id="multiSesiones" value="10" min="1" max="30">
+        </div>
+
+        <!-- Hora de inicio -->
+        <div class="form-group">
+          <label>Hora de inicio</label>
+          <input type="time" class="form-control" id="multiHoraInicio" value="09:00">
+        </div>
+
+        <!-- Duración por sesión -->
+        <div class="form-group">
+          <label>Duración (minutos)</label>
+          <select class="form-control" id="multiDuracion">
+            <option value="30">30 min</option>
+            <option value="45" selected>45 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Días de la semana -->
+      <div style="margin: 16px 0;">
+        <label style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-body);display:block;margin-bottom:8px;">
+          📅 Días de la semana para las sesiones
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="day-selector" data-day="1" onclick="toggleDia(this)">Lun</button>
+          <button class="day-selector" data-day="2" onclick="toggleDia(this)">Mar</button>
+          <button class="day-selector selected" data-day="3" onclick="toggleDia(this)">Mié</button>
+          <button class="day-selector" data-day="4" onclick="toggleDia(this)">Jue</button>
+          <button class="day-selector selected" data-day="5" onclick="toggleDia(this)">Vie</button>
+          <button class="day-selector" data-day="6" onclick="toggleDia(this)">Sáb</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-body);margin-top:6px;">
+          ⚡ Los días seleccionados se marcarán en azul. Las sesiones se agendarán en los días elegidos.
+        </div>
+      </div>
+
+      <!-- Fecha de inicio -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Fecha de inicio *</label>
+          <input type="date" class="form-control" id="multiFechaInicio">
+        </div>
+        <div class="form-group">
+          <label>Fecha de fin (estimada)</label>
+          <input type="date" class="form-control" id="multiFechaFin" readonly style="background:#f1f5f9;">
+        </div>
+      </div>
+
+      <!-- Resumen -->
+      <div id="multiResumen" style="background:#f8fafc;padding:12px 16px;border-radius:var(--radius-sutil);margin:12px 0;font-size:0.85rem;border:1px solid var(--border-color);">
+        <strong>Resumen:</strong> <span id="resumenTexto">Selecciona los días y fecha de inicio para ver el resumen.</span>
+      </div>
+
+      <!-- Botón de acción -->
+      <div class="form-row">
+        <button class="btn-panel-secondary" onclick="limpiarMultiAgendamiento()">Limpiar</button>
+        <button class="btn-panel" onclick="generarSesionesMultiples()" style="background:var(--success);">
+          <i class="fas fa-calendar-check"></i> Generar <span id="btnSesionesCount">10</span> Sesiones
+        </button>
+      </div>
+
+      <div id="multiResultado" class="multi-resultado"></div>
     </div>
 
     <!-- ADMISIÓN -->
@@ -715,17 +813,30 @@
 <div id="toast"></div>
 
 <script>
-  // ========== VERIFICAR SESIÓN ==========
+  // ===================================================================
+  // CONFIGURACIÓN
+  // ===================================================================
+  const API_URL = 'https://fisiofer-backend-production.up.railway.app/api';
+  let totalCaja = 0;
+  let diasSeleccionados = [3, 5]; // Miércoles y Viernes por defecto
+
+  // ===================================================================
+  // VERIFICAR SESIÓN
+  // ===================================================================
   if (sessionStorage.getItem('panelAuth') !== 'true' || sessionStorage.getItem('panelUser') !== 'recepcion') {
     window.location.href = 'login.html';
   }
 
-  // ========== FECHA ==========
+  // ===================================================================
+  // FECHA
+  // ===================================================================
   document.getElementById('fechaHoy').textContent = new Date().toLocaleDateString('es-BO', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
 
-  // ========== TOAST ==========
+  // ===================================================================
+  // TOAST
+  // ===================================================================
   function toast(msg) {
     const el = document.getElementById('toast');
     el.textContent = msg;
@@ -733,18 +844,15 @@
     setTimeout(() => el.classList.remove('show'), 2800);
   }
 
-  // ========== CAMBIAR PANEL ==========
+  // ===================================================================
+  // CAMBIAR PANEL
+  // ===================================================================
   function cambiarPanel(panel, el) {
-    // Ocultar todos los paneles
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    // Desactivar todos los items del menú
     document.querySelectorAll('.sidebar-menu li').forEach(i => i.classList.remove('active'));
-    // Activar el panel seleccionado
     document.getElementById('panel-' + panel).classList.add('active');
-    if (el) {
-      el.closest('li').classList.add('active');
-    }
-    // Actualizar título
+    if (el) el.closest('li').classList.add('active');
+
     const titles = {
       citas: 'Gestión de Citas',
       pacientes: 'Pacientes Registrados',
@@ -753,39 +861,184 @@
     document.getElementById('panelTitle').innerHTML = '<i class="fas fa-' + 
       (panel === 'citas' ? 'calendar-check' : panel === 'pacientes' ? 'users' : 'credit-card') + 
       '" style="color: var(--primary);"></i> ' + titles[panel];
-    
-    // Cargar datos según panel
+
     if (panel === 'pacientes') cargarPacientes();
     if (panel === 'caja') cargarCaja();
   }
 
-  // ========== CITAS ==========
-  let totalCaja = 1200;
+  // ===================================================================
+  // CITAS - CARGAR DESDE BACKEND
+  // ===================================================================
+  async function cargarCitas() {
+    try {
+      const response = await fetch(`${API_URL}/turnos`);
+      if (!response.ok) throw new Error('Error al cargar citas');
+      const data = await response.json();
 
-  function finalizarCita(btn) {
-    const row = btn.closest('tr');
-    const badge = row.querySelector('.badge-estado');
-    badge.className = 'badge-estado badge-fin';
-    badge.textContent = 'Finalizado';
-    btn.textContent = 'Cobrar';
-    btn.className = 'btn-accion success';
-    btn.onclick = () => registrarPago(btn);
-    toast('✅ Cita finalizada. Camilla liberada.');
+      if (data.success && data.data) {
+        renderizarCitas(data.data);
+        actualizarKPIs(data.data);
+      } else {
+        document.getElementById('citasBody').innerHTML = `
+          <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas registradas.</td></tr>
+        `;
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar citas:', error);
+      document.getElementById('citasBody').innerHTML = `
+        <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
+      `;
+    }
   }
 
-  function llamarCita(btn) {
-    const row = btn.closest('tr');
-    const badge = row.querySelector('.badge-estado');
-    badge.className = 'badge-estado badge-camilla';
-    badge.textContent = 'En Camilla';
-    btn.textContent = 'Finalizar';
-    btn.className = 'btn-accion';
-    btn.onclick = () => finalizarCita(btn);
-    toast('📢 Paciente llamado al consultorio.');
+  function renderizarCitas(turnos) {
+    const tbody = document.getElementById('citasBody');
+    const hoy = new Date().toISOString().split('T')[0];
+    const citasHoy = turnos.filter(t => t.fecha === hoy);
+
+    if (citasHoy.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas para hoy.</td></tr>
+      `;
+      return;
+    }
+
+    // Ordenar por hora
+    citasHoy.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+
+    tbody.innerHTML = citasHoy.map(t => {
+      const estado = t.estado || 'pendiente';
+      const badgeClass = {
+        'pendiente': 'badge-pendiente',
+        'confirmado': 'badge-confirmado',
+        'completado': 'badge-completado',
+        'cancelado': 'badge-cancelado'
+      }[estado] || 'badge-pendiente';
+
+      let acciones = '';
+      if (estado === 'pendiente') {
+        acciones = `
+          <button class="btn-accion" onclick="confirmarCita(${t.id})">Confirmar</button>
+          <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
+        `;
+      } else if (estado === 'confirmado') {
+        acciones = `
+          <button class="btn-accion success" onclick="finalizarCitaBackend(${t.id})">Finalizar</button>
+          <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
+        `;
+      } else if (estado === 'completado') {
+        acciones = `<span style="color:var(--text-body);font-size:0.7rem;">✅ Completado</span>`;
+      } else {
+        acciones = `<span style="color:var(--text-body);font-size:0.7rem;">${estado}</span>`;
+      }
+
+      return `
+        <tr>
+          <td><strong>${t.hora || '--:--'}</strong></td>
+          <td>${t.paciente_nombre || 'N/A'}</td>
+          <td>${t.profesional_nombre || 'N/A'}</td>
+          <td>${t.servicio_nombre || 'N/A'}</td>
+          <td><span class="badge-estado ${badgeClass}">${estado}</span></td>
+          <td>${acciones}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  function registrarPago(btn) {
-    const monto = 50;
+  function actualizarKPIs(turnos) {
+    const hoy = new Date().toISOString().split('T')[0];
+    const citasHoy = turnos.filter(t => t.fecha === hoy);
+
+    document.getElementById('kpiCitados').textContent = citasHoy.length;
+    document.getElementById('kpiEspera').textContent = citasHoy.filter(t => t.estado === 'pendiente').length;
+
+    const confirmados = citasHoy.filter(t => t.estado === 'confirmado' || t.estado === 'completado').length;
+    document.getElementById('kpiCamillas').innerHTML = `${confirmados} <span style="font-size:1rem;color:var(--text-body)">/ 5</span>`;
+  }
+
+  // ===================================================================
+  // CITAS - ACCIONES (Confirmar, Cancelar, Finalizar)
+  // ===================================================================
+  async function confirmarCita(id) {
+    try {
+      const response = await fetch(`${API_URL}/turnos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'confirmado' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast('✅ Cita confirmada. Camilla asignada.');
+        cargarCitas();
+      } else {
+        toast('❌ Error al confirmar la cita.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast('❌ Error de conexión.');
+    }
+  }
+
+  async function cancelarCita(id) {
+    if (!confirm('¿Cancelar esta cita?')) return;
+    try {
+      const response = await fetch(`${API_URL}/turnos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'cancelado' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast('❌ Cita cancelada.');
+        cargarCitas();
+      } else {
+        toast('❌ Error al cancelar la cita.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast('❌ Error de conexión.');
+    }
+  }
+
+  async function finalizarCitaBackend(id) {
+    try {
+      const response = await fetch(`${API_URL}/turnos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'completado' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast('✅ Cita finalizada. Camilla liberada.');
+        cargarCitas();
+        registrarPagoBackend(id);
+      } else {
+        toast('❌ Error al finalizar la cita.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast('❌ Error de conexión.');
+    }
+  }
+
+  async function registrarPagoBackend(turnoId) {
+    try {
+      const response = await fetch(`${API_URL}/turnos/${turnoId}/pago`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monto: 50, metodo: 'efectivo' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast('💰 Pago registrado en caja.');
+        actualizarCaja(50);
+      }
+    } catch (error) {
+      console.warn('⚠️ No se pudo registrar el pago:', error);
+    }
+  }
+
+  function actualizarCaja(monto) {
     totalCaja += monto;
     document.getElementById('kpiCaja').innerHTML = totalCaja + ' <span style="font-size:1rem;">Bs.</span>';
     // Guardar en localStorage
@@ -798,13 +1051,11 @@
       tipo: 'ingreso'
     });
     localStorage.setItem('caja_movimientos', JSON.stringify(movimientos));
-    toast('💰 Pago de ' + monto + ' Bs. registrado en caja.');
-    btn.style.color = '#10B981';
-    btn.textContent = '✔ Cobrado';
-    btn.onclick = null;
   }
 
-  // ========== REGISTRO DE PACIENTES ==========
+  // ===================================================================
+  // REGISTRO DE PACIENTES
+  // ===================================================================
   function registrarPaciente() {
     const ci = document.getElementById('admCI').value.trim();
     const nombre = document.getElementById('admNombre').value.trim();
@@ -823,7 +1074,6 @@
       return;
     }
 
-    // Guardar paciente
     const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
     const nuevoPaciente = {
       id: Date.now(),
@@ -838,29 +1088,19 @@
     pacientes.push(nuevoPaciente);
     localStorage.setItem('pacientes_registrados', JSON.stringify(pacientes));
 
-    // Si hay monto, registrar en caja
     if (monto > 0) {
-      totalCaja += monto;
-      document.getElementById('kpiCaja').innerHTML = totalCaja + ' <span style="font-size:1rem;">Bs.</span>';
-      const movimientos = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
-      movimientos.push({
-        fecha: new Date().toLocaleDateString('es-BO'),
-        hora: new Date().toLocaleTimeString('es-BO', {hour:'2-digit',minute:'2-digit'}),
-        concepto: 'Registro de paciente: ' + nombre,
-        monto: monto,
-        tipo: 'ingreso'
-      });
-      localStorage.setItem('caja_movimientos', JSON.stringify(movimientos));
+      actualizarCaja(monto);
     }
 
     msgEl.style.display = 'block';
     msgEl.style.background = '#ECFDF5';
     msgEl.style.color = '#065F46';
     msgEl.innerHTML = '✅ Paciente <strong>' + nombre + '</strong> registrado correctamente.';
-    
+
     limpiarAdmision();
     toast('✅ Paciente ' + nombre + ' registrado exitosamente.');
     setTimeout(() => { msgEl.style.display = 'none'; }, 4000);
+    cargarPacientes();
   }
 
   function limpiarAdmision() {
@@ -873,7 +1113,9 @@
     document.getElementById('mensajeRegistro').style.display = 'none';
   }
 
-  // ========== LISTA DE PACIENTES ==========
+  // ===================================================================
+  // LISTA DE PACIENTES
+  // ===================================================================
   function cargarPacientes() {
     const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
     const container = document.getElementById('listaPacientes');
@@ -907,12 +1149,14 @@
     toast('❌ Paciente eliminado.');
   }
 
-  // ========== CAJA DIARIA ==========
+  // ===================================================================
+  // CAJA DIARIA
+  // ===================================================================
   function cargarCaja() {
     const movimientos = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
     const hoy = new Date().toLocaleDateString('es-BO');
     const movimientosHoy = movimientos.filter(m => m.fecha === hoy);
-    
+
     const total = movimientosHoy.reduce((sum, m) => sum + m.monto, 0);
     document.getElementById('cajaTotal').innerHTML = total + ' <span style="font-size:1.5rem;">Bs.</span>';
 
@@ -946,19 +1190,334 @@
     toast('🔄 Caja reiniciada.');
   }
 
-  // ========== INICIALIZAR ==========
-  // Cargar datos iniciales
-  cargarPacientes();
-  cargarCaja();
+  // ===================================================================
+  // AGENDAMIENTO MÚLTIPLE
+  // ===================================================================
+  async function cargarDatosMulti() {
+    // Cargar pacientes desde localStorage
+    const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
+    const selectPaciente = document.getElementById('multiPaciente');
+    selectPaciente.innerHTML = '<option value="">Seleccione un paciente existente</option>';
+    pacientes.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.nombre} (${p.ci})`;
+      selectPaciente.appendChild(opt);
+    });
 
-  // Actualizar KPI de caja con datos guardados
-  const movimientosIniciales = JSON.parse(localStorage.getItem('caja_movimientos') || '[]');
-  const hoy = new Date().toLocaleDateString('es-BO');
-  const totalHoy = movimientosIniciales.filter(m => m.fecha === hoy).reduce((sum, m) => sum + m.monto, 0);
-  if (totalHoy > 0) {
-    totalCaja = totalHoy;
-    document.getElementById('kpiCaja').innerHTML = totalCaja + ' <span style="font-size:1rem;">Bs.</span>';
+    // Cargar servicios
+    try {
+      const response = await fetch(`${API_URL}/servicios`);
+      const data = await response.json();
+      const selectServicio = document.getElementById('multiServicio');
+      selectServicio.innerHTML = '<option value="">Seleccione un servicio</option>';
+      if (data.success && data.data) {
+        data.data.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = `${s.nombre} - ${s.duracion_min || 45} min (${s.precio || 0} Bs.)`;
+          selectServicio.appendChild(opt);
+        });
+      }
+    } catch (error) {
+      console.warn('Error cargando servicios:', error);
+    }
+
+    // Cargar profesionales
+    try {
+      const response = await fetch(`${API_URL}/profesionales`);
+      const data = await response.json();
+      const selectProfesional = document.getElementById('multiProfesional');
+      selectProfesional.innerHTML = '<option value="">Seleccione un profesional</option>';
+      if (data.success && data.data) {
+        data.data.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          const nombreCompleto = p.titulo ? `${p.titulo} ${p.nombre} ${p.apellido}` : `${p.nombre} ${p.apellido}`;
+          opt.textContent = nombreCompleto;
+          selectProfesional.appendChild(opt);
+        });
+      }
+    } catch (error) {
+      console.warn('Error cargando profesionales:', error);
+    }
+
+    // Fecha de inicio por defecto: mañana
+    const fechaInicio = document.getElementById('multiFechaInicio');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    fechaInicio.value = tomorrow.toISOString().split('T')[0];
+    fechaInicio.min = tomorrow.toISOString().split('T')[0];
+
+    actualizarResumen();
   }
+
+  function toggleDia(el) {
+    const day = parseInt(el.dataset.day);
+    const index = diasSeleccionados.indexOf(day);
+
+    if (index > -1) {
+      diasSeleccionados.splice(index, 1);
+      el.classList.remove('selected');
+    } else {
+      diasSeleccionados.push(day);
+      diasSeleccionados.sort();
+      el.classList.add('selected');
+    }
+    actualizarResumen();
+  }
+
+  function actualizarResumen() {
+    const fechaInicio = document.getElementById('multiFechaInicio').value;
+    const sesiones = parseInt(document.getElementById('multiSesiones').value) || 10;
+    const diasNombres = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const diasSeleccionadosNombres = diasSeleccionados.map(d => diasNombres[d]).join(', ');
+
+    const resumen = document.getElementById('resumenTexto');
+
+    if (!fechaInicio || diasSeleccionados.length === 0) {
+      resumen.textContent = 'Selecciona los días y fecha de inicio para ver el resumen.';
+      document.getElementById('multiFechaFin').value = '';
+      return;
+    }
+
+    const fechas = generarFechasSesiones(fechaInicio, diasSeleccionados, sesiones);
+    const fechaFin = fechas.length > 0 ? fechas[fechas.length - 1] : fechaInicio;
+    document.getElementById('multiFechaFin').value = fechaFin;
+
+    resumen.innerHTML = `
+      <strong>${sesiones} sesiones</strong> ·
+      Días: <strong>${diasSeleccionadosNombres}</strong> ·
+      Inicio: <strong>${fechaInicio}</strong> ·
+      Fin estimado: <strong>${fechaFin}</strong>
+    `;
+    document.getElementById('btnSesionesCount').textContent = sesiones;
+  }
+
+  function generarFechasSesiones(fechaInicio, diasSemana, numSesiones) {
+    const fechas = [];
+    const inicio = new Date(fechaInicio);
+    let fechaActual = new Date(inicio);
+
+    while (fechas.length < numSesiones) {
+      const diaSemana = fechaActual.getDay();
+      if (diasSemana.includes(diaSemana)) {
+        fechas.push(fechaActual.toISOString().split('T')[0]);
+      }
+      fechaActual.setDate(fechaActual.getDate() + 1);
+    }
+    return fechas;
+  }
+
+  async function generarSesionesMultiples() {
+    const pacienteSelect = document.getElementById('multiPaciente');
+    const pacienteNuevo = document.getElementById('multiPacienteNuevo').value.trim();
+    const servicio = document.getElementById('multiServicio').value;
+    const profesional = document.getElementById('multiProfesional').value;
+    const sesiones = parseInt(document.getElementById('multiSesiones').value) || 10;
+    const horaInicio = document.getElementById('multiHoraInicio').value;
+    const fechaInicio = document.getElementById('multiFechaInicio').value;
+    const resultado = document.getElementById('multiResultado');
+
+    // Validaciones
+    if (!pacienteSelect.value && !pacienteNuevo) {
+      resultado.style.display = 'block';
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '⚠️ Selecciona un paciente existente o ingresa uno nuevo.';
+      return;
+    }
+
+    if (!servicio) {
+      resultado.style.display = 'block';
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '⚠️ Selecciona un servicio.';
+      return;
+    }
+
+    if (!profesional) {
+      resultado.style.display = 'block';
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '⚠️ Selecciona un profesional.';
+      return;
+    }
+
+    if (diasSeleccionados.length === 0) {
+      resultado.style.display = 'block';
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '⚠️ Selecciona al menos un día de la semana.';
+      return;
+    }
+
+    if (!fechaInicio) {
+      resultado.style.display = 'block';
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '⚠️ Selecciona una fecha de inicio.';
+      return;
+    }
+
+    // Obtener nombre del paciente
+    let nombrePaciente = pacienteNuevo;
+    if (pacienteSelect.value) {
+      const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
+      const encontrado = pacientes.find(p => p.id === parseInt(pacienteSelect.value));
+      nombrePaciente = encontrado ? encontrado.nombre : pacienteNuevo;
+    }
+
+    if (!nombrePaciente) {
+      resultado.style.display = 'block';
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '⚠️ Ingresa un nombre para el paciente.';
+      return;
+    }
+
+    // Generar fechas
+    const fechas = generarFechasSesiones(fechaInicio, diasSeleccionados, sesiones);
+
+    if (fechas.length === 0) {
+      resultado.style.display = 'block';
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '⚠️ No se pudieron generar fechas. Verifica los días seleccionados.';
+      return;
+    }
+
+    // Crear turnos
+    let creados = 0;
+    let errores = 0;
+
+    resultado.style.display = 'block';
+    resultado.style.background = '#EBF4FF';
+    resultado.style.color = '#0A369D';
+    resultado.innerHTML = '⏳ Generando sesiones...';
+
+    for (let i = 0; i < fechas.length; i++) {
+      const payload = {
+        paciente_nombre: nombrePaciente,
+        paciente_telefono: document.getElementById('admCelular')?.value || 'N/A',
+        paciente_email: null,
+        servicio_id: parseInt(servicio),
+        profesional_id: parseInt(profesional),
+        fecha: fechas[i],
+        hora: horaInicio
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/turnos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (data.success) {
+          creados++;
+        } else {
+          errores++;
+          console.warn(`Error en sesión ${i+1}:`, data.error);
+        }
+      } catch (error) {
+        errores++;
+        console.error(`Error en sesión ${i+1}:`, error);
+      }
+    }
+
+    if (creados > 0) {
+      resultado.style.background = '#ECFDF5';
+      resultado.style.color = '#065F46';
+      resultado.innerHTML = `
+        ✅ <strong>${creados} sesiones generadas exitosamente</strong> para ${nombrePaciente}.<br>
+        ${errores > 0 ? `⚠️ ${errores} sesiones no pudieron ser creadas.` : ''}
+        📅 Primera: ${fechas[0]} · Última: ${fechas[fechas.length-1]}
+      `;
+      toast(`✅ ${creados} sesiones agendadas para ${nombrePaciente}`);
+      cargarCitas();
+    } else {
+      resultado.style.background = '#FEF2F2';
+      resultado.style.color = '#991B1B';
+      resultado.innerHTML = '❌ No se pudo generar ninguna sesión. Verifica los datos e intenta nuevamente.';
+    }
+  }
+
+  function agregarPacienteTemporal() {
+    const nombre = document.getElementById('multiPacienteNuevo').value.trim();
+    if (!nombre) {
+      toast('⚠️ Ingresa un nombre para el paciente.');
+      return;
+    }
+
+    const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
+    const existe = pacientes.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+    if (existe) {
+      toast('⚠️ El paciente ya existe. Selecciónalo de la lista.');
+      return;
+    }
+
+    const nuevoPaciente = {
+      id: Date.now(),
+      ci: 'N/A',
+      nombre: nombre,
+      celular: 'N/A',
+      servicio: 'Pendiente',
+      fechaRegistro: new Date().toLocaleDateString('es-BO'),
+      monto: 0,
+      pago: 'Pendiente'
+    };
+    pacientes.push(nuevoPaciente);
+    localStorage.setItem('pacientes_registrados', JSON.stringify(pacientes));
+
+    const select = document.getElementById('multiPaciente');
+    const opt = document.createElement('option');
+    opt.value = nuevoPaciente.id;
+    opt.textContent = `${nombre} (Nuevo)`;
+    select.appendChild(opt);
+    select.value = nuevoPaciente.id;
+    document.getElementById('multiPacienteNuevo').value = '';
+
+    toast('✅ Paciente ' + nombre + ' agregado.');
+    cargarPacientes();
+  }
+
+  function limpiarMultiAgendamiento() {
+    document.getElementById('multiPaciente').value = '';
+    document.getElementById('multiPacienteNuevo').value = '';
+    document.getElementById('multiServicio').value = '';
+    document.getElementById('multiProfesional').value = '';
+    document.getElementById('multiSesiones').value = '10';
+    document.getElementById('multiHoraInicio').value = '09:00';
+    document.getElementById('multiDuracion').value = '45';
+    document.getElementById('multiResultado').style.display = 'none';
+
+    document.querySelectorAll('.day-selector').forEach(el => {
+      const day = parseInt(el.dataset.day);
+      if (day === 3 || day === 5) {
+        el.classList.add('selected');
+      } else {
+        el.classList.remove('selected');
+      }
+    });
+    diasSeleccionados = [3, 5];
+    actualizarResumen();
+    toast('🔄 Formulario limpiado.');
+  }
+
+  // ===================================================================
+  // INICIALIZAR
+  // ===================================================================
+  document.addEventListener('DOMContentLoaded', function() {
+    cargarCitas();
+    cargarPacientes();
+    cargarCaja();
+    cargarDatosMulti();
+
+    // Event listeners para actualizar resumen
+    document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
+    document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
+  });
 </script>
 
 </body>
