@@ -356,11 +356,50 @@
   <script src="js/api.js"></script>
   <script src="js/main.js"></script>
 
-  <!-- Botpress Chatbot -->
-  <script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js"></script>
-  <script src="https://files.bpcontent.cloud/2026/05/27/05/20260527055301-RH5Q395R.js" defer></script>
-
-  <script>
+<!-- ========== BOTPRESS CHATBOT ========== -->
+<!-- Botpress Chatbot - Configuración Personalizada -->
+<script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js"></script>
+<script>
+  window.botpressWebChat = {
+    botId: 'f79aba6d-389f-44a7-87b3-76688b35b216',
+    hostUrl: 'https://app.botpress.cloud',
+    messagingUrl: 'https://messaging.botpress.cloud',
+    clientId: 'f79aba6d-389f-44a7-87b3-76688b35b216',
+    hideComposer: false,
+    showBotInfo: true,
+    showPoweredBy: false,
+    enableFileUpload: false,
+    theme: {
+      brandColor: '#0A369D',
+      chatWindow: {
+        backgroundColor: '#FFFFFF',
+        headerColor: '#061A40',
+        headerTextColor: '#FFFFFF',
+      },
+      composer: {
+        backgroundColor: '#F8FAFC',
+        textColor: '#061A40',
+        placeholderTextColor: '#A0AEC0',
+      },
+      botMessage: {
+        backgroundColor: '#EBF4FF',
+        textColor: '#061A40',
+      },
+      userMessage: {
+        backgroundColor: '#0A369D',
+        textColor: '#FFFFFF',
+      }
+    },
+    botName: 'Asistente Fisiofer SPA',
+    avatarUrl: 'img/logo.png',
+    website: 'https://fisioferspa.netlify.app',
+    storage: {
+      enabled: true,
+      key: 'botpress_chat_fisiofer'
+    }
+  };
+</script>
+<script src="https://files.bpcontent.cloud/2026/05/27/05/20260527055301-RH5Q395R.js" defer></script>
     // Año actual en footer
     document.getElementById('currentYear').textContent = new Date().getFullYear();
 
