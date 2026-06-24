@@ -1,0 +1,15 @@
+# Mac
+.DS_Store
+*.local
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Node (por si acaso)
+node_modules/
+.env
+.env.local

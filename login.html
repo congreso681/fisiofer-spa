@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso - Fisiofer SPA</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <style>
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--bg-white);
+      border-radius: var(--radius-card);
+      padding: 45px 40px 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--accent-bg);
+      padding: 10px;
+    }
+
+    .login-logo img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .login-card h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+    }
+
+    .login-card h2 span {
+      color: var(--primary);
+    }
+
+    .login-card .subtitle {
+      color: var(--text-body);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .login-card .form-group {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+
+    .login-card .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-body);
+      margin-bottom: 6px;
+    }
+
+    .login-card select,
+    .login-card input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sutil);
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: var(--bg-white);
+      transition: var(--transition);
+    }
+
+    .login-card select:focus,
+    .login-card input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(10, 54, 157, 0.1);
+    }
+
+    .login-card .btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      font-size: 1rem;
+    }
+
+    .error-msg {
+      color: #EF4444;
+      font-size: 0.85rem;
+      margin-top: 12px;
+      display: none;
+      background: #FEF2F2;
+      padding: 10px;
+      border-radius: var(--radius-sutil);
+      border: 1px solid #FCA5A5;
+    }
+
+    .login-links {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .login-links a {
+      color: var(--text-body);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: var(--transition);
+    }
+
+    .login-links a:hover {
+      color: var(--primary);
+    }
+
+    .login-card .footer-text {
+      font-size: 0.75rem;
+      color: var(--text-body);
+      margin-top: 24px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="img/logo.png" alt="Fisiofer SPA">
+    </div>
+
+    <h2>Fisio<span>fer</span></h2>
+    <p class="subtitle">Panel de Administración · El Alto, Bolivia</p>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label for="userType"><i class="fas fa-user"></i> Rol de usuario</label>
+        <select id="userType" required>
+          <option value="recepcion">👩‍💼 Recepcionista</option>
+          <option value="profesional">👨‍⚕️ Profesional de Salud</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="passwordInput"><i class="fas fa-lock"></i> Contraseña</label>
+        <input type="password" id="passwordInput" placeholder="Ingresa tu contraseña" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-sign-in-alt"></i> Ingresar al Panel
+      </button>
+
+      <div class="error-msg" id="loginError">
+        <i class="fas fa-exclamation-circle"></i> Contraseña incorrecta. Intenta nuevamente.
+      </div>
+    </form>
+
+    <div class="login-links">
+      <a href="index.html"><i class="fas fa-arrow-left"></i> Volver al sitio web</a>
+      <a href="https://wa.me/59167342055" target="_blank" rel="noopener">
+        <i class="fab fa-whatsapp"></i> Contactar por WhatsApp
+      </a>
+    </div>
+
+    <div class="footer-text">
+      <p>Proyecto Académico · <a href="login.html"
+    style="color: var(--primary-light); text-decoration: none;"><i class="fas fa-lock"
+      style="margin-right: 4px;"></i>Panel Admin</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CREDENCIALES = {
+    recepcion: 'Recepcion2025',
+    profesional: 'Fisio2025'
+  };
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const userType = document.getElementById('userType').value;
+    const password = document.getElementById('passwordInput').value;
+    const errorEl = document.getElementById('loginError');
+
+    if (password === CREDENCIALES[userType]) {
+      sessionStorage.setItem('panelUser', userType);
+      sessionStorage.setItem('panelAuth', 'true');
+      window.location.href = userType === 'recepcion' ? 'recepcion.html' : 'profesional.html';
+    } else {
+      errorEl.style.display = 'block';
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('passwordInput').focus();
+    }
+  }
+
+  if (sessionStorage.getItem('panelAuth') === 'true') {
+    const user = sessionStorage.getItem('panelUser');
+    window.location.href = user === 'recepcion' ? 'recepcion.html' : 'profesional.html';
+  }
+</script>
+
+</body>
+</html>

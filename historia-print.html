@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historia Clínica - Fisiofer SPA</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ===== ESTILOS DE IMPRESIÓN ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    /* ===== HOJA A4 ===== */
+    .print-page {
+      max-width: 210mm;
+      width: 100%;
+      background: #ffffff;
+      padding: 0;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.12);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .print-content {
+      padding: 30px 35px 25px;
+    }
+
+    /* ===== HEADER CON LOGO ===== */
+    .print-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid #0A369D;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+
+    .print-header .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .print-header .logo-area img {
+      height: 50px;
+      width: auto;
+    }
+
+    .print-header .logo-area h1 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0A369D;
+    }
+
+    .print-header .logo-area h1 span {
+      color: #419DFF;
+    }
+
+    .print-header .header-right {
+      text-align: right;
+      font-size: 11px;
+      color: #4A5568;
+      line-height: 1.5;
+    }
+
+    .print-header .header-right strong {
+      color: #0A369D;
+    }
+
+    /* ===== TÍTULO DEL DOCUMENTO ===== */
+    .doc-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 800;
+      color: #061A40;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #E2E8F0;
+    }
+
+    /* ===== DATOS DEL PACIENTE ===== */
+    .patient-data {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 30px;
+      background: #F8FAFC;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 25px;
+      border: 1px solid #E2E8F0;
+    }
+
+    .patient-data .item {
+      display: flex;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .patient-data .item .label {
+      font-weight: 700;
+      color: #4A5568;
+      min-width: 80px;
+    }
+
+    .patient-data .item .value {
+      color: #061A40;
+      font-weight: 500;
+    }
+
+    /* ===== SECCIONES ===== */
+    .section {
+      margin-bottom: 22px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #0A369D;
+      border-bottom: 2px solid #EBF4FF;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+    }
+
+    .section-content {
+      font-size: 13px;
+      color: #2D3748;
+      line-height: 1.7;
+      padding: 0 4px;
+    }
+
+    .section-content p {
+      margin-bottom: 6px;
+    }
+
+    .section-content .row {
+      display: flex;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .section-content .row .lbl {
+      font-weight: 600;
+      color: #4A5568;
+      min-width: 120px;
+    }
+
+    .section-content .row .val {
+      color: #061A40;
+    }
+
+    /* ===== TABLA DE TRATAMIENTOS ===== */
+    .treatment-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .treatment-table th {
+      background: #EBF4FF;
+      color: #061A40;
+      font-weight: 700;
+      padding: 8px 10px;
+      text-align: left;
+      border: 1px solid #E2E8F0;
+    }
+
+    .treatment-table td {
+      padding: 7px 10px;
+      border: 1px solid #E2E8F0;
+      color: #2D3748;
+    }
+
+    .treatment-table tr:nth-child(even) td {
+      background: #F8FAFC;
+    }
+
+    /* ===== EVOLUCIONES ===== */
+    .evol-item {
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      border-left: 3px solid #0A369D;
+      background: #F8FAFC;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .evol-item .evol-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: #061A40;
+      margin-bottom: 4px;
+    }
+
+    .evol-item .evol-body {
+      font-size: 12px;
+      color: #4A5568;
+      line-height: 1.6;
+    }
+
+    /* ===== ACUERDO DE CONFORMIDAD ===== */
+    .agreement {
+      margin-top: 30px;
+      border-top: 2px solid #E2E8F0;
+      padding-top: 25px;
+    }
+
+    .agreement-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #061A40;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .agreement-text {
+      font-size: 12px;
+      color: #4A5568;
+      line-height: 1.8;
+      text-align: justify;
+      margin-bottom: 25px;
+    }
+
+    .agreement-signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 15px;
+    }
+
+    .signature-box {
+      text-align: center;
+    }
+
+    .signature-box .line {
+      border-bottom: 1.5px solid #4A5568;
+      width: 80%;
+      margin: 8px auto 6px;
+    }
+
+    .signature-box .name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #061A40;
+    }
+
+    .signature-box .role {
+      font-size: 11px;
+      color: #4A5568;
+    }
+
+    /* ===== FOOTER ===== */
+    .print-footer {
+      margin-top: 30px;
+      padding-top: 15px;
+      border-top: 2px solid #0A369D;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #718096;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .print-footer .left {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .print-footer .left i {
+      color: #0A369D;
+    }
+
+    .print-footer .right {
+      text-align: right;
+    }
+
+    /* ===== BOTÓN DE IMPRESIÓN ===== */
+    .print-btn-container {
+      text-align: center;
+      margin: 30px 0 10px;
+    }
+
+    .print-btn {
+      background: #0A369D;
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      transition: background 0.3s;
+      box-shadow: 0 4px 15px rgba(10,54,157,0.3);
+    }
+
+    .print-btn:hover {
+      background: #061A40;
+    }
+
+    /* ===== @MEDIA PRINT ===== */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+        margin: 0;
+      }
+
+      .print-page {
+        max-width: 100%;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .print-content {
+        padding: 20px 25px 15px;
+      }
+
+      .print-btn-container {
+        display: none !important;
+      }
+
+      .print-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px 25px;
+        background: white;
+        border-top: 2px solid #0A369D;
+        margin-top: 0;
+      }
+
+      .print-page {
+        page-break-after: avoid;
+      }
+
+      .agreement {
+        page-break-inside: avoid;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .patient-data {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+      .agreement-signatures {
+        grid-template-columns: 1fr;
+        gap: 25px;
+      }
+      .print-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .print-header .header-right {
+        text-align: left;
+        width: 100%;
+      }
+      .print-content {
+        padding: 16px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-page">
+
+  <!-- ===== CONTENIDO ===== -->
+  <div class="print-content" id="printContent">
+
+    <!-- HEADER -->
+    <div class="print-header">
+      <div class="logo-area">
+        <img src="img/logo.png" alt="Fisiofer SPA" id="logoImg">
+        <h1>Fisio<span>fer</span></h1>
+      </div>
+      <div class="header-right">
+        <strong>HISTORIA CLÍNICA</strong><br>
+        N° <span id="docNumber">HC-2026-001</span><br>
+        <span id="docDate">27 de junio de 2026</span>
+      </div>
+    </div>
+
+    <!-- TÍTULO -->
+    <div class="doc-title">📋 Informe de Evolución Clínica</div>
+
+    <!-- DATOS DEL PACIENTE -->
+    <div class="patient-data">
+      <div class="item"><span class="label">Paciente:</span><span class="value" id="pNombre">Fernandez Ulo Miguel Angel</span></div>
+      <div class="item"><span class="label">C.I.:</span><span class="value" id="pCI">1234567 L.P.</span></div>
+      <div class="item"><span class="label">Edad:</span><span class="value" id="pEdad">22 años</span></div>
+      <div class="item"><span class="label">Teléfono:</span><span class="value" id="pTelefono">71548236</span></div>
+      <div class="item"><span class="label">Ocupación:</span><span class="value" id="pOcupacion">Estudiante de Ingeniería</span></div>
+      <div class="item"><span class="label">Fecha Registro:</span><span class="value" id="pFechaReg">22/04/2026</span></div>
+    </div>
+
+    <!-- DIAGNÓSTICO -->
+    <div class="section">
+      <div class="section-title">1. Diagnóstico y Motivo de Consulta</div>
+      <div class="section-content">
+        <p><strong>Diagnóstico Principal:</strong> <span id="diagPrincipal">Lumbalgia mecánica crónica</span></p>
+        <p><strong>Motivo de Consulta:</strong> <span id="motivoConsulta">Dolor agudo lumbar L4-L5 que irradia a cresta ilíaca izquierda al sedestación prolongada.</span></p>
+        <p><strong>Tratamientos Previos:</strong> <span id="tratPrevios">Analgésicos de venta libre de forma esporádica. Sin fisioterapia previa.</span></p>
+      </div>
+    </div>
+
+    <!-- EVOLUCIONES -->
+    <div class="section">
+      <div class="section-title">2. Evolución del Paciente</div>
+      <div class="section-content" id="evolucionesContainer">
+        <!-- Las evoluciones se cargan dinámicamente con JS -->
+      </div>
+    </div>
+
+    <!-- TRATAMIENTOS APLICADOS -->
+    <div class="section">
+      <div class="section-title">3. Tratamientos Aplicados</div>
+      <div class="section-content">
+        <table class="treatment-table" id="tablaTratamientos">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tratamiento</th>
+              <th>Profesional</th>
+              <th>EVA</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyTratamientos">
+            <!-- Se llena con JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANTECEDENTES -->
+    <div class="section">
+      <div class="section-title">4. Antecedentes Clínicos</div>
+      <div class="section-content">
+        <p><span class="row"><span class="lbl">Patológicos:</span><span class="val" id="antePatologicos">Fracturas (Historial). Ninguna otra patología relevante.</span></span></p>
+        <p><span class="row"><span class="lbl">Hábitos:</span><span class="val" id="anteHabitos">Sedentarismo. No tabaquismo ni alcoholismo.</span></span></p>
+        <p><span class="row"><span class="lbl">Observaciones:</span><span class="val" id="anteObs">Hipercifosis dorsal compensatoria. Genu Valgo bilateral leve. Pie Plano Grado II bilateral.</span></span></p>
+      </div>
+    </div>
+
+    <!-- ACUERDO DE CONFORMIDAD -->
+    <div class="agreement">
+      <div class="agreement-title">📄 Acuerdo de Conformidad y Consentimiento Informado</div>
+      <div class="agreement-text">
+        <p>El/La paciente <strong><span id="aNombre">Fernandez Ulo Miguel Angel</span></strong>, con C.I. <strong><span id="aCI">1234567 L.P.</span></strong>, declara haber recibido información clara, completa y comprensible sobre su diagnóstico, el plan de tratamiento propuesto, los procedimientos aplicados, los beneficios esperados, los riesgos potenciales y las alternativas existentes.</p>
+        <p style="margin-top:8px;">Asimismo, autoriza al/la profesional <strong><span id="aProfesional">Lic. Nelly Fernández</span></strong> a llevar a cabo las intervenciones fisioterapéuticas necesarias para su recuperación, y declara estar conforme con el seguimiento y las indicaciones recibidas.</p>
+        <p style="margin-top:8px; font-weight:600; color:#061A40;">El presente documento forma parte del expediente clínico de Fisiofer SPA y tiene validez legal.</p>
+      </div>
+
+      <!-- FIRMAS -->
+      <div class="agreement-signatures">
+        <div class="signature-box">
+          <div class="line"></div>
+          <div class="name" id="firmaPaciente">_________________________</div>
+          <div class="role">Firma del Paciente</div>
+          <div style="font-size:11px; color:#4A5568; margin-top:4px;" id="nombrePacienteFirma">Fernandez Ulo Miguel Angel</div>
+        </div>
+        <div class="signature-box">
+          <div class="line"></div>
+          <div class="name" id="firmaProfesional">_________________________</div>
+          <div class="role">Firma del Profesional de Salud</div>
+          <div style="font-size:11px; color:#4A5568; margin-top:4px;" id="nombreProfesionalFirma">Lic. Nelly Fernández</div>
+          <div style="font-size:10px; color:#718096;">Reg. Prof. N° 12345</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="print-footer">
+      <div class="left">
+        <span><i>📍</i> Av. Pucarani N°122, Of. 1, 1er Piso · El Alto, Bolivia</span>
+        <span><i>📱</i> 67342055</span>
+        <span><i>📧</i> info@fisioferspa.com</span>
+      </div>
+      <div class="right">
+        <span>Fisiofer SPA · El Alto · Bolivia</span><br>
+        <span style="font-size:9px; opacity:0.7;">Documento generado electrónicamente</span>
+      </div>
+    </div>
+
+  </div><!-- print-content -->
+
+  <!-- BOTÓN DE IMPRESIÓN -->
+  <div class="print-btn-container">
+    <button class="print-btn" onclick="imprimir()">
+      <i class="fas fa-print"></i> Imprimir Historia Clínica
+    </button>
+    <button class="print-btn" onclick="window.close()" style="background:#4A5568; margin-left:10px;">
+      <i class="fas fa-times"></i> Cerrar
+    </button>
+  </div>
+
+</div><!-- print-page -->
+
+<script>
+  // ===== DATOS DE PRUEBA (SE PUEDEN PASAR POR URL) =====
+  // Ejemplo: historia-print.html?nombre=Juan&ci=1234567...
+
+  const params = new URLSearchParams(window.location.search);
+
+  // Cargar datos del paciente
+  function getParam(key, def) {
+    return params.get(key) || def;
+  }
+
+  // Datos del paciente
+  const paciente = {
+    nombre: getParam('nombre', 'Fernandez Ulo Miguel Angel'),
+    ci: getParam('ci', '1234567 L.P.'),
+    edad: getParam('edad', '22 años'),
+    telefono: getParam('telefono', '71548236'),
+    ocupacion: getParam('ocupacion', 'Estudiante de Ingeniería'),
+    fechaReg: getParam('fechaReg', '22/04/2026'),
+    diagnostico: getParam('diagnostico', 'Lumbalgia mecánica crónica'),
+    motivo: getParam('motivo', 'Dolor agudo lumbar L4-L5 que irradia a cresta ilíaca izquierda al sedestación prolongada.'),
+    tratPrevios: getParam('tratPrevios', 'Analgésicos de venta libre de forma esporádica. Sin fisioterapia previa.'),
+    profesional: getParam('profesional', 'Lic. Nelly Fernández'),
+    numDoc: getParam('numDoc', 'HC-2026-001'),
+    fechaDoc: getParam('fechaDoc', new Date().toLocaleDateString('es-BO', {day:'numeric',month:'long',year:'numeric'}))
+  };
+
+  // Llenar datos
+  document.getElementById('pNombre').textContent = paciente.nombre;
+  document.getElementById('pCI').textContent = paciente.ci;
+  document.getElementById('pEdad').textContent = paciente.edad;
+  document.getElementById('pTelefono').textContent = paciente.telefono;
+  document.getElementById('pOcupacion').textContent = paciente.ocupacion;
+  document.getElementById('pFechaReg').textContent = paciente.fechaReg;
+  document.getElementById('diagPrincipal').textContent = paciente.diagnostico;
+  document.getElementById('motivoConsulta').textContent = paciente.motivo;
+  document.getElementById('tratPrevios').textContent = paciente.tratPrevios;
+  document.getElementById('aNombre').textContent = paciente.nombre;
+  document.getElementById('aCI').textContent = paciente.ci;
+  document.getElementById('aProfesional').textContent = paciente.profesional;
+  document.getElementById('nombrePacienteFirma').textContent = paciente.nombre;
+  document.getElementById('nombreProfesionalFirma').textContent = paciente.profesional;
+  document.getElementById('docNumber').textContent = paciente.numDoc;
+  document.getElementById('docDate').textContent = paciente.fechaDoc;
+
+  // Antecedentes
+  document.getElementById('antePatologicos').textContent = getParam('antePat', 'Fracturas (Historial). Ninguna otra patología relevante.');
+  document.getElementById('anteHabitos').textContent = getParam('anteHab', 'Sedentarismo. No tabaquismo ni alcoholismo.');
+  document.getElementById('anteObs').textContent = getParam('anteObs', 'Hipercifosis dorsal compensatoria. Genu Valgo bilateral leve. Pie Plano Grado II bilateral.');
+
+  // ===== EVOLUCIONES (ejemplo) =====
+  const evoluciones = [
+    { fecha: '22/04/2026', profesional: 'Lic. Nelly Fernández', eva: '8/10', texto: 'Ingresa con marcha antálgica y dolor lumbar severo irradiado (EVA 8/10). Rigidez paravertebral bilateral. Tratamiento: Termoterapia local superficial, electroestimulación TENS 20 min, masaje descontracturante manual profundo zona lumbar.' },
+    { fecha: '12/05/2026', profesional: 'Lic. Fidel Villca', eva: '5/10', texto: 'Mejoría progresiva (EVA 5/10). Mayor rango de flexo-extensión. Refiere "ya puedo sentarme más tiempo". Tratamiento: Ultrasonido terapéutico L4-L5, ejercicios de Williams guiados, reeducación postural activa.' },
+    { fecha: '03/06/2026', profesional: 'Lic. Nelly Fernández', eva: '3/10', texto: 'Paciente refiere notable mejoría (EVA 3/10). Flexión lumbar cercana al rango normal. Camina sin claudicación. Tratamiento: Magnetoterapia 20 min, estiramientos de cadena posterior, fortalecimiento de core (estabilizadores lumbares).' },
+    { fecha: '27/06/2026', profesional: 'Lic. Nelly Fernández', eva: '2/10', texto: 'Paciente refiere dolor casi ausente. Rango de movilidad completo. Se recomienda continuar con ejercicios de mantenimiento y control en 15 días.' }
+  ];
+
+  // Renderizar evoluciones
+  const evolContainer = document.getElementById('evolucionesContainer');
+  evolContainer.innerHTML = evoluciones.map(ev => `
+    <div class="evol-item">
+      <div class="evol-header">
+        <span>📅 ${ev.fecha}</span>
+        <span>👨‍⚕️ ${ev.profesional} · EVA: ${ev.eva}</span>
+      </div>
+      <div class="evol-body">${ev.texto}</div>
+    </div>
+  `).join('');
+
+  // Renderizar tabla de tratamientos
+  const tbody = document.getElementById('tbodyTratamientos');
+  tbody.innerHTML = evoluciones.map(ev => `
+    <tr>
+      <td>${ev.fecha}</td>
+      <td>${ev.texto.split('Tratamiento:')[1]?.split('.')[0] || 'Fisioterapia general'}</td>
+      <td>${ev.profesional}</td>
+      <td><strong>${ev.eva}</strong></td>
+    </tr>
+  `).join('');
+
+  // ===== FUNCIÓN IMPRIMIR =====
+  function imprimir() {
+    window.print();
+  }
+
+  // Cargar logo desde localStorage o por defecto
+  document.addEventListener('DOMContentLoaded', function() {
+    const logoImg = document.getElementById('logoImg');
+    // Si hay un logo guardado en localStorage (desde el panel), usarlo
+    const logoData = localStorage.getItem('logo_data');
+    if (logoData) {
+      logoImg.src = logoData;
+    } else {
+      logoImg.src = 'img/logo.png';
+    }
+  });
+</script>
+
+</body>
+</html>
