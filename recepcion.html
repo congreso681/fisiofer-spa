@@ -866,189 +866,137 @@
   }
 
   // ===================================================================
-  // FUNCIONES DE FECHA
-  // ===================================================================
-  function formatearFecha(fecha) {
-    return fecha.toISOString().split('T')[0];
+// FUNCIONES DE FECHA
+// ===================================================================
+function formatearFecha(fecha) {
+  return fecha.toISOString().split('T')[0];
+}
+
+function formatearFechaLegible(fecha) {
+  return fecha.toLocaleDateString('es-BO', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+}
+
+// ===================================================================
+// SELECTOR DE FECHA
+// ===================================================================
+function actualizarFechaCitas() {
+  const input = document.getElementById('fechaCitas');
+  const label = document.getElementById('fechaCitasLabel');
+  
+  const fechaStr = formatearFecha(fechaCitasActual);
+  if (input) input.value = fechaStr;
+  if (label) label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
+  
+  cargarCitasPorFecha(fechaStr);
+}
+
+function cambiarFechaCitas(dias) {
+  fechaCitasActual.setDate(fechaCitasActual.getDate() + dias);
+  actualizarFechaCitas();
+}
+
+function irHoyCitas() {
+  fechaCitasActual = new Date();
+  actualizarFechaCitas();
+}
+
+// ===================================================================
+// CARGAR CITAS POR FECHA
+// ===================================================================
+async function cargarCitasPorFecha(fecha) {
+  console.log('🔄 Cargando citas para:', fecha);
+  
+  try {
+    const response = await fetch(`${API_URL}/turnos`);
+    if (!response.ok) throw new Error('Error al cargar citas');
+    const data = await response.json();
+
+    let turnos = data.data || [];
+    console.log(`📋 Total de citas en backend: ${turnos.length}`);
+
+    const citasFecha = turnos.filter(t => t.fecha === fecha);
+    console.log(`📅 Citas para ${fecha}:`, citasFecha);
+
+    renderizarCitas(citasFecha, fecha);
+    actualizarKPIs(turnos);
+  } catch (error) {
+    console.error('❌ Error al cargar citas:', error);
+    document.getElementById('citasBody').innerHTML = `
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
+    `;
+  }
+}
+
+// ===================================================================
+// RENDERIZAR CITAS
+// ===================================================================
+function renderizarCitas(citas, fecha) {
+  const tbody = document.getElementById('citasBody');
+
+  if (!citas || citas.length === 0) {
+    tbody.innerHTML = `
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">
+        No hay citas para el ${formatearFechaLegible(new Date(fecha + 'T00:00:00'))}.
+      </td></tr>
+    `;
+    return;
   }
 
-  function formatearFechaLegible(fecha) {
-    return fecha.toLocaleDateString('es-BO', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    });
-  }
+  citas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
 
-  // ===================================================================
-  // SELECTOR DE FECHA
-  // ===================================================================
-  function actualizarFechaCitas() {
-    const input = document.getElementById('fechaCitas');
-    const label = document.getElementById('fechaCitasLabel');
-    
-    const fechaStr = formatearFecha(fechaCitasActual);
-    if (input) input.value = fechaStr;
-    if (label) label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
-    
-    cargarCitasPorFecha(fechaStr);
-  }
+  tbody.innerHTML = citas.map(t => {
+    const estado = t.estado || 'pendiente';
+    const badgeClass = {
+      'pendiente': 'badge-pendiente',
+      'confirmado': 'badge-confirmado',
+      'completado': 'badge-completado',
+      'cancelado': 'badge-cancelado'
+    }[estado] || 'badge-pendiente';
 
-  function cambiarFechaCitas(dias) {
-    fechaCitasActual.setDate(fechaCitasActual.getDate() + dias);
-    actualizarFechaCitas();
-  }
-
-  function irHoyCitas() {
-    fechaCitasActual = new Date();
-    actualizarFechaCitas();
-  }
-
-  // ===================================================================
-  // Sincronizar turnos locales con el backend
-  // ===================================================================
-  async function sincronizarTurnosLocales() {
-    console.log('🔄 Sincronizando turnos locales con el backend...');
-    
-    const turnosLocales = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
-    const turnosSync = JSON.parse(localStorage.getItem('turnos_sync') || '[]');
-    
-    const turnosPendientes = turnosLocales.filter(t => !turnosSync.includes(t.id));
-    
-    if (turnosPendientes.length === 0) {
-      console.log('✅ Todos los turnos locales ya están sincronizados.');
-      return;
-    }
-    
-    console.log(`📋 ${turnosPendientes.length} turnos pendientes de sincronizar.`);
-    
-    for (const turno of turnosPendientes) {
-      try {
-        const payload = {
-          paciente_nombre: turno.paciente_nombre,
-          paciente_telefono: turno.paciente_telefono || 'N/A',
-          paciente_email: turno.paciente_email || null,
-          servicio_id: turno.servicio_id || 1,
-          profesional_id: turno.profesional_id || 1,
-          fecha: turno.fecha,
-          hora: turno.hora || '09:00'
-        };
-        
-        const response = await fetch(`${API_URL}/turnos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-          turnosSync.push(turno.id);
-          localStorage.setItem('turnos_sync', JSON.stringify(turnosSync));
-          console.log(`✅ Turno #${turno.id} sincronizado. Nuevo ID: ${data.data.id}`);
-        } else {
-          console.warn(`⚠️ Error al sincronizar turno #${turno.id}:`, data.error);
-        }
-      } catch (error) {
-        console.error(`❌ Error al sincronizar turno #${turno.id}:`, error);
-      }
-    }
-  }
-
-  // ===================================================================
-  // CARGAR CITAS POR FECHA
-  // ===================================================================
-  async function cargarCitasPorFecha(fecha) {
-    console.log('🔄 Cargando citas para:', fecha);
-    
-    try {
-      await sincronizarTurnosLocales();
-      
-      const response = await fetch(`${API_URL}/turnos`);
-      if (!response.ok) throw new Error('Error al cargar citas');
-      const data = await response.json();
-
-      let turnos = data.data || [];
-      console.log(`📋 Total de citas en backend: ${turnos.length}`);
-
-      const citasFecha = turnos.filter(t => t.fecha === fecha);
-      renderizarCitas(citasFecha, fecha);
-      actualizarKPIs(turnos);
-    } catch (error) {
-      console.error('❌ Error al cargar citas:', error);
-      document.getElementById('citasBody').innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
+    let acciones = '';
+    if (estado === 'pendiente') {
+      acciones = `
+        <button class="btn-accion" onclick="confirmarCita(${t.id})">Confirmar</button>
+        <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
       `;
-    }
-  }
-
-  // ===================================================================
-  // RENDERIZAR CITAS
-  // ===================================================================
-  function renderizarCitas(citas, fecha) {
-    const tbody = document.getElementById('citasBody');
-
-    if (!citas || citas.length === 0) {
-      tbody.innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">
-          No hay citas para el ${formatearFechaLegible(new Date(fecha + 'T00:00:00'))}.
-        </td></tr>
+    } else if (estado === 'confirmado') {
+      acciones = `
+        <button class="btn-accion success" onclick="finalizarCitaBackend(${t.id})">Finalizar</button>
+        <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
       `;
-      return;
+    } else if (estado === 'completado') {
+      acciones = `<span style="color:var(--text-body);font-size:0.7rem;">✅ Completado</span>`;
+    } else {
+      acciones = `<span style="color:var(--text-body);font-size:0.7rem;">${estado}</span>`;
     }
 
-    citas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+    return `
+      <tr>
+        <td><strong>${t.hora || '--:--'}</strong></td>
+        <td>${t.paciente_nombre || 'N/A'}</td>
+        <td>${t.profesional_nombre || 'N/A'}</td>
+        <td>${t.servicio_nombre || 'N/A'}</td>
+        <td><span class="badge-estado ${badgeClass}">${estado}</span></td>
+        <td>${acciones}</td>
+      </tr>
+    `;
+  }).join('');
+}
 
-    tbody.innerHTML = citas.map(t => {
-      const estado = t.estado || 'pendiente';
-      const badgeClass = {
-        'pendiente': 'badge-pendiente',
-        'confirmado': 'badge-confirmado',
-        'completado': 'badge-completado',
-        'cancelado': 'badge-cancelado'
-      }[estado] || 'badge-pendiente';
+// ===================================================================
+// ACTUALIZAR KPIs
+// ===================================================================
+function actualizarKPIs(turnos) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const citasHoy = turnos.filter(t => t.fecha === hoy);
 
-      let acciones = '';
-      if (estado === 'pendiente') {
-        acciones = `
-          <button class="btn-accion" onclick="confirmarCita(${t.id})">Confirmar</button>
-          <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
-        `;
-      } else if (estado === 'confirmado') {
-        acciones = `
-          <button class="btn-accion success" onclick="finalizarCitaBackend(${t.id})">Finalizar</button>
-          <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
-        `;
-      } else if (estado === 'completado') {
-        acciones = `<span style="color:var(--text-body);font-size:0.7rem;">✅ Completado</span>`;
-      } else {
-        acciones = `<span style="color:var(--text-body);font-size:0.7rem;">${estado}</span>`;
-      }
-
-      return `
-        <tr>
-          <td><strong>${t.hora || '--:--'}</strong></td>
-          <td>${t.paciente_nombre || 'N/A'}</td>
-          <td>${t.profesional_nombre || 'N/A'}</td>
-          <td>${t.servicio_nombre || 'N/A'}</td>
-          <td><span class="badge-estado ${badgeClass}">${estado}</span></td>
-          <td>${acciones}</td>
-        </tr>
-      `;
-    }).join('');
-  }
-
-  // ===================================================================
-  // ACTUALIZAR KPIs
-  // ===================================================================
-  function actualizarKPIs(turnos) {
-    const hoy = new Date().toISOString().split('T')[0];
-    const citasHoy = turnos.filter(t => t.fecha === hoy);
-
-    document.getElementById('kpiCitados').textContent = citasHoy.length;
-    document.getElementById('kpiEspera').textContent = citasHoy.filter(t => t.estado === 'pendiente').length;
-    const confirmados = citasHoy.filter(t => t.estado === 'confirmado' || t.estado === 'completado').length;
-    document.getElementById('kpiCamillas').innerHTML = `${confirmados} <span style="font-size:1rem;color:var(--text-body)">/ 5</span>`;
-  }
-
+  document.getElementById('kpiCitados').textContent = citasHoy.length;
+  document.getElementById('kpiEspera').textContent = citasHoy.filter(t => t.estado === 'pendiente').length;
+  const confirmados = citasHoy.filter(t => t.estado === 'confirmado' || t.estado === 'completado').length;
+  document.getElementById('kpiCamillas').innerHTML = `${confirmados} <span style="font-size:1rem;color:var(--text-body)">/ 5</span>`;
+}
   // ===================================================================
   // ABRIR NUEVA CITA
   // ===================================================================
@@ -1652,32 +1600,32 @@
   // ===================================================================
   // INICIALIZAR
   // ===================================================================
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 Inicializando recepcion.html...');
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔄 Inicializando recepcion.html...');
 
-    // Inicializar selector de fecha
-    const inputFecha = document.getElementById('fechaCitas');
-    if (inputFecha) {
-      const hoy = new Date();
-      fechaCitasActual = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-      inputFecha.value = formatearFecha(fechaCitasActual);
-      inputFecha.addEventListener('change', function() {
-        const parts = this.value.split('-');
-        fechaCitasActual = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        actualizarFechaCitas();
-      });
-    }
+  // Inicializar selector de fecha
+  const inputFecha = document.getElementById('fechaCitas');
+  if (inputFecha) {
+    const hoy = new Date();
+    fechaCitasActual = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    inputFecha.value = formatearFecha(fechaCitasActual);
+    inputFecha.addEventListener('change', function() {
+      const parts = this.value.split('-');
+      fechaCitasActual = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      actualizarFechaCitas();
+    });
+  }
 
-    // Cargar datos
-    actualizarFechaCitas();
-    cargarPacientes();
-    cargarCaja();
-    cargarDatosMulti();
+  // Cargar datos
+  actualizarFechaCitas(); // ✅ Esto carga las citas de la fecha actual
+  cargarPacientes();
+  cargarCaja();
+  cargarDatosMulti();
 
-    // Event listeners
-    document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
-    document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
-  });
+  // Event listeners
+  document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
+  document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
+});
 </script>
 
 </body>
