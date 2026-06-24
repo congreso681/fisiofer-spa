@@ -522,7 +522,7 @@
   </ul>
 
   <div class="sidebar-footer">
-    <a href="login.html"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+    <a href="#" onclick="cerrarSesion()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
     <a href="index.html"><i class="fas fa-home"></i> Volver al Portal</a>
     <a href="https://wa.me/59167342055" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp: 67342055</a>
   </div>
@@ -1746,6 +1746,19 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
   document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
 });
+
+// ===================================================================
+// CERRAR SESIÓN
+// ===================================================================
+function cerrarSesion() {
+  // Limpiar sesión
+  sessionStorage.removeItem('panelUser');
+  sessionStorage.removeItem('panelAuth');
+  
+  // Redirigir al login
+  window.location.href = 'login.html';
+}
+
 </script>
 
 </body>
