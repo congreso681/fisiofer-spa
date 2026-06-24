@@ -891,13 +891,20 @@
     });
   }
 
-  function actualizarFechaCitas() {
-    const input = document.getElementById('fechaCitas');
-    const label = document.getElementById('fechaCitasLabel');
+function actualizarFechaCitas() {
+  const input = document.getElementById('fechaCitas');
+  const label = document.getElementById('fechaCitasLabel');
+  
+  if (input) {
     input.value = formatearFecha(fechaCitasActual);
-    label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
-    cargarCitasPorFecha(formatearFecha(fechaCitasActual));
   }
+  if (label) {
+    label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
+  }
+  
+  // Recargar citas para la fecha seleccionada
+  cargarCitasPorFecha(formatearFecha(fechaCitasActual));
+}
 
   function cambiarFechaCitas(dias) {
     fechaCitasActual.setDate(fechaCitasActual.getDate() + dias);
@@ -1057,84 +1064,135 @@
   // ===================================================================
   // CITAS - ACCIONES
   // ===================================================================
-  async function confirmarCita(id) {
-    try {
-      const response = await fetch(`${API_URL}/turnos/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'confirmado' })
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast('✅ Cita confirmada. Camilla asignada.');
-        actualizarFechaCitas();
-      } else {
-        toast('❌ Error al confirmar la cita.');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast('❌ Error de conexión.');
-    }
+// ===================================================================
+// CONFIRMAR CITA
+// ===================================================================
+async function confirmarCita(id) {
+  console.log('🔄 Confirmando cita ID:', id);
+  
+  if (!id) {
+    toast('❌ ID de cita no válido.');
+    return;
   }
 
-  async function cancelarCita(id) {
-    if (!confirm('¿Cancelar esta cita?')) return;
-    try {
-      const response = await fetch(`${API_URL}/turnos/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'cancelado' })
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast('❌ Cita cancelada.');
-        actualizarFechaCitas();
-      } else {
-        toast('❌ Error al cancelar la cita.');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast('❌ Error de conexión.');
-    }
-  }
+  try {
+    const response = await fetch(`${API_URL}/turnos/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ estado: 'confirmado' })
+    });
 
-  async function finalizarCitaBackend(id) {
-    try {
-      const response = await fetch(`${API_URL}/turnos/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'completado' })
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast('✅ Cita finalizada. Camilla liberada.');
-        actualizarFechaCitas();
-        registrarPagoBackend(id);
-      } else {
-        toast('❌ Error al finalizar la cita.');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast('❌ Error de conexión.');
-    }
-  }
+    console.log('📥 Status:', response.status);
+    
+    const data = await response.json();
+    console.log('📥 Respuesta:', data);
 
-  async function registrarPagoBackend(turnoId) {
-    try {
-      const response = await fetch(`${API_URL}/turnos/${turnoId}/pago`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monto: 50, metodo: 'efectivo' })
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast('💰 Pago registrado en caja.');
-        actualizarCaja(50);
-      }
-    } catch (error) {
-      console.warn('⚠️ No se pudo registrar el pago:', error);
+    if (response.ok && data.success) {
+      toast('✅ Cita confirmada. Camilla asignada.');
+      actualizarFechaCitas(); // Recargar citas
+    } else {
+      console.error('❌ Error del backend:', data);
+      toast('❌ Error al confirmar: ' + (data.error || 'Error desconocido'));
     }
+  } catch (error) {
+    console.error('❌ Error de conexión:', error);
+    toast('❌ Error de conexión. Verifica tu internet.');
   }
+}
+
+// ===================================================================
+// CANCELAR CITA
+// ===================================================================
+async function cancelarCita(id) {
+  if (!confirm('¿Cancelar esta cita?')) return;
+  
+  console.log('🔄 Cancelando cita ID:', id);
+  
+  try {
+    const response = await fetch(`${API_URL}/turnos/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ estado: 'cancelado' })
+    });
+
+    const data = await response.json();
+    console.log('📥 Respuesta cancelar:', data);
+
+    if (response.ok && data.success) {
+      toast('❌ Cita cancelada.');
+      actualizarFechaCitas();
+    } else {
+      toast('❌ Error al cancelar: ' + (data.error || 'Error desconocido'));
+    }
+  } catch (error) {
+    console.error('❌ Error de conexión:', error);
+    toast('❌ Error de conexión.');
+  }
+}
+
+// ===================================================================
+// FINALIZAR CITA
+// ===================================================================
+async function finalizarCitaBackend(id) {
+  console.log('🔄 Finalizando cita ID:', id);
+  
+  try {
+    const response = await fetch(`${API_URL}/turnos/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ estado: 'completado' })
+    });
+
+    const data = await response.json();
+    console.log('📥 Respuesta finalizar:', data);
+
+    if (response.ok && data.success) {
+      toast('✅ Cita finalizada. Camilla liberada.');
+      actualizarFechaCitas();
+      
+      // Registrar pago automáticamente
+      try {
+        await registrarPagoBackend(id);
+      } catch (pagoError) {
+        console.warn('⚠️ Error al registrar pago:', pagoError);
+      }
+    } else {
+      toast('❌ Error al finalizar: ' + (data.error || 'Error desconocido'));
+    }
+  } catch (error) {
+    console.error('❌ Error de conexión:', error);
+    toast('❌ Error de conexión.');
+  }
+}
+
+// ===================================================================
+// REGISTRAR PAGO (POST)
+// ===================================================================
+async function registrarPagoBackend(turnoId) {
+  try {
+    const response = await fetch(`${API_URL}/turnos/${turnoId}/pago`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ monto: 50, metodo: 'efectivo' })
+    });
+    const data = await response.json();
+    console.log('📥 Respuesta pago:', data);
+    if (data.success) {
+      toast('💰 Pago registrado en caja.');
+      actualizarCaja(50);
+    }
+  } catch (error) {
+    console.warn('⚠️ No se pudo registrar el pago:', error);
+  }
+}
 
   function actualizarCaja(monto) {
     totalCaja += monto;
