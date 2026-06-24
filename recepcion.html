@@ -602,6 +602,15 @@
       </div>
     </div>
 
+  <!-- ========== SELECTOR DE FECHA ========== -->
+  <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+    <button class="btn-accion" onclick="cambiarFechaCitas(-1)">◀ Anterior</button>
+    <input type="date" id="fechaCitas" class="form-control" style="width:auto; min-width:180px;">
+    <button class="btn-accion" onclick="cambiarFechaCitas(1)">Siguiente ▶</button>
+    <button class="btn-accion" onclick="irHoyCitas()" style="background:var(--primary);color:white;border-color:var(--primary);">📅 Hoy</button>
+    <span id="fechaCitasLabel" style="font-weight:600;color:var(--primary-dark);font-size:0.9rem;"></span>
+  </div>
+
     <!-- TABLA DE CITAS -->
     <div class="table-wrap">
       <div class="table-header">
@@ -866,30 +875,21 @@
     if (panel === 'caja') cargarCaja();
   }
 
-  // ===================================================================
-  // CITAS - CARGAR DESDE BACKEND
-  // ===================================================================
-  async function cargarCitas() {
-    try {
-      const response = await fetch(`${API_URL}/turnos`);
-      if (!response.ok) throw new Error('Error al cargar citas');
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        renderizarCitas(data.data);
-        actualizarKPIs(data.data);
-      } else {
-        document.getElementById('citasBody').innerHTML = `
-          <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas registradas.</td></tr>
-        `;
-      }
-    } catch (error) {
-      console.error('❌ Error al cargar citas:', error);
-      document.getElementById('citasBody').innerHTML = `
-        <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
-      `;
-    }
+// ===================================================================
+// CITAS - CARGAR DESDE BACKEND (con selector de fecha)
+// ===================================================================
+async function cargarCitas() {
+  // Usar la fecha seleccionada o la de hoy
+  const input = document.getElementById('fechaCitas');
+  if (input && input.value) {
+    const fecha = input.value;
+    await cargarCitasPorFecha(fecha);
+  } else {
+    // Si no hay selector, usar hoy
+    const hoy = new Date().toISOString().split('T')[0];
+    await cargarCitasPorFecha(hoy);
   }
+}
 
   function renderizarCitas(turnos) {
     const tbody = document.getElementById('citasBody');
@@ -1508,16 +1508,141 @@
   // ===================================================================
   // INICIALIZAR
   // ===================================================================
-  document.addEventListener('DOMContentLoaded', function() {
-    cargarCitas();
-    cargarPacientes();
-    cargarCaja();
-    cargarDatosMulti();
+document.addEventListener('DOMContentLoaded', function() {
+  // Inicializar selector de fecha
+  const inputFecha = document.getElementById('fechaCitas');
+  if (inputFecha) {
+    const hoy = new Date();
+    inputFecha.value = hoy.toISOString().split('T')[0];
+    inputFecha.addEventListener('change', function() {
+      fechaCitasActual = new Date(this.value + 'T00:00:00');
+      actualizarFechaCitas();
+    });
+  }
 
-    // Event listeners para actualizar resumen
-    document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
-    document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
+  cargarCitas();
+  cargarPacientes();
+  cargarCaja();
+  cargarDatosMulti();
+
+  // Event listeners para actualizar resumen
+  document.getElementById('multiSesiones').addEventListener('change', actualizarResumen);
+  document.getElementById('multiFechaInicio').addEventListener('change', actualizarResumen);
+});
+
+  // ===================================================================
+// SELECTOR DE FECHA PARA CITAS
+// ===================================================================
+let fechaCitasActual = new Date();
+
+function formatearFecha(fecha) {
+  return fecha.toISOString().split('T')[0];
+}
+
+function formatearFechaLegible(fecha) {
+  return fecha.toLocaleDateString('es-BO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   });
+}
+
+function actualizarFechaCitas() {
+  const input = document.getElementById('fechaCitas');
+  const label = document.getElementById('fechaCitasLabel');
+  input.value = formatearFecha(fechaCitasActual);
+  label.textContent = '📅 ' + formatearFechaLegible(fechaCitasActual);
+  cargarCitasPorFecha(formatearFecha(fechaCitasActual));
+}
+
+function cambiarFechaCitas(dias) {
+  fechaCitasActual.setDate(fechaCitasActual.getDate() + dias);
+  actualizarFechaCitas();
+}
+
+function irHoyCitas() {
+  fechaCitasActual = new Date();
+  actualizarFechaCitas();
+}
+
+// ===================================================================
+// CARGAR CITAS POR FECHA ESPECÍFICA
+// ===================================================================
+async function cargarCitasPorFecha(fecha) {
+  try {
+    const response = await fetch(`${API_URL}/turnos?fecha=${fecha}`);
+    if (!response.ok) throw new Error('Error al cargar citas');
+    const data = await response.json();
+
+    if (data.success && data.data) {
+      renderizarCitasPorFecha(data.data, fecha);
+      actualizarKPIs(data.data);
+    } else {
+      document.getElementById('citasBody').innerHTML = `
+        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas para esta fecha.</td></tr>
+      `;
+    }
+  } catch (error) {
+    console.error('❌ Error al cargar citas:', error);
+    document.getElementById('citasBody').innerHTML = `
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:#EF4444;">⚠️ Error al cargar las citas.</td></tr>
+    `;
+  }
+}
+
+function renderizarCitasPorFecha(turnos, fecha) {
+  const tbody = document.getElementById('citasBody');
+  const citasFecha = turnos.filter(t => t.fecha === fecha);
+
+  if (citasFecha.length === 0) {
+    tbody.innerHTML = `
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-body);">No hay citas para el ${formatearFechaLegible(new Date(fecha))}.</td></tr>
+    `;
+    return;
+  }
+
+  // Ordenar por hora
+  citasFecha.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+
+  tbody.innerHTML = citasFecha.map(t => {
+    const estado = t.estado || 'pendiente';
+    const badgeClass = {
+      'pendiente': 'badge-pendiente',
+      'confirmado': 'badge-confirmado',
+      'completado': 'badge-completado',
+      'cancelado': 'badge-cancelado'
+    }[estado] || 'badge-pendiente';
+
+    let acciones = '';
+    if (estado === 'pendiente') {
+      acciones = `
+        <button class="btn-accion" onclick="confirmarCita(${t.id})">Confirmar</button>
+        <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
+      `;
+    } else if (estado === 'confirmado') {
+      acciones = `
+        <button class="btn-accion success" onclick="finalizarCitaBackend(${t.id})">Finalizar</button>
+        <button class="btn-accion danger" onclick="cancelarCita(${t.id})">Cancelar</button>
+      `;
+    } else if (estado === 'completado') {
+      acciones = `<span style="color:var(--text-body);font-size:0.7rem;">✅ Completado</span>`;
+    } else {
+      acciones = `<span style="color:var(--text-body);font-size:0.7rem;">${estado}</span>`;
+    }
+
+    return `
+      <tr>
+        <td><strong>${t.hora || '--:--'}</strong></td>
+        <td>${t.paciente_nombre || 'N/A'}</td>
+        <td>${t.profesional_nombre || 'N/A'}</td>
+        <td>${t.servicio_nombre || 'N/A'}</td>
+        <td><span class="badge-estado ${badgeClass}">${estado}</span></td>
+        <td>${acciones}</td>
+      </tr>
+    `;
+  }).join('');
+}
 </script>
 
 </body>
