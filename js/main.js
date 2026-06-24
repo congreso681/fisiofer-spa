@@ -219,64 +219,69 @@ function initBookingFlow() {
     if (el) el.addEventListener('change', fetchAndRenderSlots);
   });
 
-  async function fetchAndRenderSlots() {
-    const fecha = document.getElementById('bookingFecha')?.value;
-    const servicio = document.getElementById('bookingServicio')?.value;
-    const profesional = document.getElementById('bookingProfesional')?.value;
-    const container = document.getElementById('slotsContainer');
+async function fetchAndRenderSlots() {
+  const fecha = document.getElementById('bookingFecha')?.value;
+  const servicio = document.getElementById('bookingServicio')?.value;
+  const profesional = document.getElementById('bookingProfesional')?.value;
+  const container = document.getElementById('slotsContainer');
 
-    if (!container) return;
+  console.log('📅 Fecha seleccionada:', fecha);
+  console.log('🆔 Servicio ID:', servicio);
+  console.log('🆔 Profesional ID:', profesional);
+
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!fecha || !servicio || !profesional) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-body); font-size: 0.9rem;">
+        Por favor seleccione fecha, servicio y profesional para ver disponibilidad.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="grid-column: 1/-1; text-align: center; color: var(--text-body);">
+      <i class="fas fa-spinner fa-spin"></i> Buscando horarios disponibles...
+    </div>
+  `;
+
+  try {
+    const slots = await fetchDisponibilidad(fecha, servicio, profesional);
+    console.log('📋 Slots obtenidos:', slots);
     container.innerHTML = '';
 
-    if (!fecha || !servicio || !profesional) {
+    if (slots.length === 0) {
       container.innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; color: var(--text-body); font-size: 0.9rem;">
-          Por favor seleccione fecha, servicio y profesional para ver disponibilidad.
+        <div style="grid-column: 1/-1; text-align: center; color: var(--text-body);">
+          No hay horarios disponibles para esta fecha. Intenta con otro día.
         </div>
       `;
       return;
     }
 
+    slots.forEach(slot => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-btn';
+      btn.textContent = slot;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        document.getElementById('bookingSelectedSlot').value = slot;
+      });
+      container.appendChild(btn);
+    });
+  } catch (error) {
+    console.error('Error buscando disponibilidad:', error);
     container.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; color: var(--text-body);">
-        <i class="fas fa-spinner fa-spin"></i> Buscando horarios disponibles...
+      <div style="grid-column: 1/-1; text-align: center; color: #EF4444; font-size: 0.9rem;">
+        ⚠️ Error al cargar los horarios. Por favor intenta nuevamente.
       </div>
     `;
-
-    try {
-      const slots = await fetchDisponibilidad(fecha, servicio, profesional);
-      container.innerHTML = '';
-
-      if (slots.length === 0) {
-        container.innerHTML = `
-          <div style="grid-column: 1/-1; text-align: center; color: var(--text-body);">
-            No hay horarios disponibles para esta fecha. Intenta con otro día.
-          </div>
-        `;
-        return;
-      }
-
-      slots.forEach(slot => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'slot-btn';
-        btn.textContent = slot;
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          document.getElementById('bookingSelectedSlot').value = slot;
-        });
-        container.appendChild(btn);
-      });
-    } catch (error) {
-      console.error('Error buscando disponibilidad:', error);
-      container.innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; color: #EF4444; font-size: 0.9rem;">
-          ⚠️ Error al cargar los horarios. Por favor intenta nuevamente.
-        </div>
-      `;
-    }
   }
+}
 
   // Submit del Formulario de Reserva
   if (form) {

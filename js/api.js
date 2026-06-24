@@ -83,7 +83,7 @@ async function fetchProfesionales() {
 // CONSULTAR DISPONIBILIDAD
 // ===================================================================
 async function fetchDisponibilidad(fecha, servicioId, profesionalId) {
-  console.log('📅 Buscando disponibilidad para:', { fecha, servicioId, profesionalId });
+  console.log('📅 Fecha recibida en api.js:', fecha);
 
   try {
     const queryParams = new URLSearchParams({
