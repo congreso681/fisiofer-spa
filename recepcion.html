@@ -1464,135 +1464,171 @@ async function cargarDatosMulti() {
     return fechas;
   }
 
-  async function generarSesionesMultiples() {
-    const pacienteSelect = document.getElementById('multiPaciente');
-    const pacienteNuevo = document.getElementById('multiPacienteNuevo').value.trim();
-    const servicio = document.getElementById('multiServicio').value;
-    const profesional = document.getElementById('multiProfesional').value;
-    const sesiones = parseInt(document.getElementById('multiSesiones').value) || 10;
-    const horaInicio = document.getElementById('multiHoraInicio').value;
-    const fechaInicio = document.getElementById('multiFechaInicio').value;
-    const resultado = document.getElementById('multiResultado');
+async function generarSesionesMultiples() {
+  console.log('🚀 Iniciando generación de sesiones múltiples...');
+  
+  const pacienteSelect = document.getElementById('multiPaciente');
+  const pacienteNuevo = document.getElementById('multiPacienteNuevo').value.trim();
+  const servicio = document.getElementById('multiServicio').value;
+  const profesional = document.getElementById('multiProfesional').value;
+  const sesiones = parseInt(document.getElementById('multiSesiones').value) || 10;
+  const horaInicio = document.getElementById('multiHoraInicio').value;
+  const fechaInicio = document.getElementById('multiFechaInicio').value;
+  const resultado = document.getElementById('multiResultado');
 
-    if (!pacienteSelect.value && !pacienteNuevo) {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ Selecciona un paciente existente o ingresa uno nuevo.';
-      return;
-    }
-
-    if (!servicio) {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ Selecciona un servicio.';
-      return;
-    }
-
-    if (!profesional) {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ Selecciona un profesional.';
-      return;
-    }
-
-    if (diasSeleccionados.length === 0) {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ Selecciona al menos un día de la semana.';
-      return;
-    }
-
-    if (!fechaInicio) {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ Selecciona una fecha de inicio.';
-      return;
-    }
-
-    let nombrePaciente = pacienteNuevo;
-    if (pacienteSelect.value) {
-      const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
-      const encontrado = pacientes.find(p => p.id === parseInt(pacienteSelect.value));
-      nombrePaciente = encontrado ? encontrado.nombre : pacienteNuevo;
-    }
-
-    if (!nombrePaciente) {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ Ingresa un nombre para el paciente.';
-      return;
-    }
-
-    const fechas = generarFechasSesiones(fechaInicio, diasSeleccionados, sesiones);
-
-    if (fechas.length === 0) {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '⚠️ No se pudieron generar fechas.';
-      return;
-    }
-
-    let creados = 0;
-    let errores = 0;
-
+  // Validaciones...
+  if (!pacienteSelect.value && !pacienteNuevo) {
     resultado.style.display = 'block';
-    resultado.style.background = '#EBF4FF';
-    resultado.style.color = '#0A369D';
-    resultado.innerHTML = '⏳ Generando sesiones...';
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    resultado.innerHTML = '⚠️ Selecciona un paciente existente o ingresa uno nuevo.';
+    return;
+  }
 
-    for (let i = 0; i < fechas.length; i++) {
-      const payload = {
-        paciente_nombre: nombrePaciente,
-        paciente_telefono: document.getElementById('admCelular')?.value || 'N/A',
-        paciente_email: null,
-        servicio_id: parseInt(servicio),
-        profesional_id: parseInt(profesional),
-        fecha: fechas[i],
-        hora: horaInicio
-      };
+  if (!servicio) {
+    resultado.style.display = 'block';
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    resultado.innerHTML = '⚠️ Selecciona un servicio.';
+    return;
+  }
 
+  if (!profesional) {
+    resultado.style.display = 'block';
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    resultado.innerHTML = '⚠️ Selecciona un profesional.';
+    return;
+  }
+
+  if (diasSeleccionados.length === 0) {
+    resultado.style.display = 'block';
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    resultado.innerHTML = '⚠️ Selecciona al menos un día de la semana.';
+    return;
+  }
+
+  if (!fechaInicio) {
+    resultado.style.display = 'block';
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    resultado.innerHTML = '⚠️ Selecciona una fecha de inicio.';
+    return;
+  }
+
+  // Obtener nombre del paciente
+  let nombrePaciente = pacienteNuevo;
+  if (pacienteSelect.value) {
+    const pacientes = JSON.parse(localStorage.getItem('pacientes_registrados') || '[]');
+    const encontrado = pacientes.find(p => p.id === parseInt(pacienteSelect.value));
+    nombrePaciente = encontrado ? encontrado.nombre : pacienteNuevo;
+  }
+
+  if (!nombrePaciente) {
+    resultado.style.display = 'block';
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    resultado.innerHTML = '⚠️ Ingresa un nombre para el paciente.';
+    return;
+  }
+
+  // Generar fechas
+  const fechas = generarFechasSesiones(fechaInicio, diasSeleccionados, sesiones);
+
+  if (fechas.length === 0) {
+    resultado.style.display = 'block';
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    resultado.innerHTML = '⚠️ No se pudieron generar fechas. Verifica los días seleccionados.';
+    return;
+  }
+
+  // Crear turnos
+  let creados = 0;
+  let errores = 0;
+  const erroresLista = [];
+
+  resultado.style.display = 'block';
+  resultado.style.background = '#EBF4FF';
+  resultado.style.color = '#0A369D';
+  resultado.innerHTML = `⏳ Generando ${fechas.length} sesiones...`;
+
+  for (let i = 0; i < fechas.length; i++) {
+    const payload = {
+      paciente_nombre: nombrePaciente,
+      paciente_telefono: document.getElementById('admCelular')?.value || 'N/A',
+      paciente_email: null,
+      servicio_id: parseInt(servicio),
+      profesional_id: parseInt(profesional),
+      fecha: fechas[i],
+      hora: horaInicio || '09:00'
+    };
+
+    console.log(`📤 Enviando sesión ${i+1}/${fechas.length}:`, payload);
+
+    try {
+      const response = await fetch(`${API_URL}/turnos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      // Leer la respuesta como texto primero para depuración
+      const responseText = await response.text();
+      console.log(`📥 Respuesta sesión ${i+1} (texto):`, responseText);
+      
+      let data;
       try {
-        const response = await fetch(`${API_URL}/turnos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await response.json();
-        if (data.success) {
-          creados++;
-        } else {
-          errores++;
-          console.warn(`Error en sesión ${i+1}:`, data.error);
-        }
-      } catch (error) {
-        errores++;
-        console.error(`Error en sesión ${i+1}:`, error);
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('❌ Error parsing JSON:', e);
+        data = { error: responseText || 'Error desconocido' };
       }
-    }
-
-    if (creados > 0) {
-      resultado.style.background = '#ECFDF5';
-      resultado.style.color = '#065F46';
-      resultado.innerHTML = `
-        ✅ <strong>${creados} sesiones generadas</strong> para ${nombrePaciente}.<br>
-        ${errores > 0 ? `⚠️ ${errores} sesiones fallaron.` : ''}
-        📅 Primera: ${fechas[0]} · Última: ${fechas[fechas.length-1]}
-      `;
-      toast(`✅ ${creados} sesiones agendadas`);
-      actualizarFechaCitas();
-    } else {
-      resultado.style.background = '#FEF2F2';
-      resultado.style.color = '#991B1B';
-      resultado.innerHTML = '❌ No se pudo generar ninguna sesión.';
+      
+      console.log(`📥 Respuesta sesión ${i+1} (parsed):`, data);
+      
+      if (response.ok && data.success) {
+        creados++;
+      } else {
+        errores++;
+        const errorMsg = data.error || data.errores?.join(', ') || data.message || 'Error desconocido';
+        erroresLista.push(`Sesión ${i+1} (${fechas[i]}): ${errorMsg}`);
+        console.warn(`⚠️ Error en sesión ${i+1}:`, data);
+      }
+    } catch (error) {
+      errores++;
+      erroresLista.push(`Sesión ${i+1} (${fechas[i]}): ${error.message}`);
+      console.error(`❌ Error en sesión ${i+1}:`, error);
     }
   }
+
+  // Mostrar resultado
+  if (creados > 0) {
+    resultado.style.background = '#ECFDF5';
+    resultado.style.color = '#065F46';
+    let mensaje = `
+      ✅ <strong>${creados} sesiones generadas exitosamente</strong> para ${nombrePaciente}.<br>
+      📅 Primera: ${fechas[0]} · Última: ${fechas[fechas.length-1]}
+    `;
+    if (errores > 0) {
+      mensaje += `<br>⚠️ ${errores} sesiones fallaron:<br>`;
+      mensaje += erroresLista.map(e => `&nbsp;&nbsp;- ${e}`).join('<br>');
+    }
+    resultado.innerHTML = mensaje;
+    toast(`✅ ${creados} sesiones agendadas`);
+    actualizarFechaCitas();
+  } else {
+    resultado.style.background = '#FEF2F2';
+    resultado.style.color = '#991B1B';
+    let mensaje = '❌ No se pudo generar ninguna sesión.';
+    if (erroresLista.length > 0) {
+      mensaje += `<br><br>📋 Errores del servidor:<br>`;
+      mensaje += erroresLista.map(e => `&nbsp;&nbsp;- ${e}`).join('<br>');
+    }
+    resultado.innerHTML = mensaje;
+  }
+}
 
   function agregarPacienteTemporal() {
     const nombre = document.getElementById('multiPacienteNuevo').value.trim();
