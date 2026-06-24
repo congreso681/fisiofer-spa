@@ -125,6 +125,7 @@ async function fetchDisponibilidad(fecha, servicioId, profesionalId) {
 // ===================================================================
 // CREAR TURNO (VERSIÓN ÚNICA Y CORRECTA)
 // ===================================================================
+// api.js - función createTurno
 async function createTurno(payload) {
   console.log('📤 Enviando payload al backend:', JSON.stringify(payload, null, 2));
 
@@ -144,6 +145,17 @@ async function createTurno(payload) {
       const errorMsg = data.error || data.errores?.join(', ') || 'Error al agendar turno';
       throw new Error(errorMsg);
     }
+    
+    // Si se creó correctamente, guardar en localStorage como respaldo
+    if (data.success && data.data) {
+      const turnosLocales = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
+      const existe = turnosLocales.some(t => t.id === data.data.id);
+      if (!existe) {
+        turnosLocales.push(data.data);
+        localStorage.setItem('turnos_locales', JSON.stringify(turnosLocales));
+      }
+    }
+    
     return data;
   } catch (error) {
     console.warn('⚠️ Error al crear turno en el backend:', error.message);
@@ -164,7 +176,6 @@ async function createTurno(payload) {
       created_at: new Date().toISOString()
     };
 
-    // Guardar en localStorage
     const turnosLocales = JSON.parse(localStorage.getItem('turnos_locales') || '[]');
     turnosLocales.push(turnoLocal);
     localStorage.setItem('turnos_locales', JSON.stringify(turnosLocales));
